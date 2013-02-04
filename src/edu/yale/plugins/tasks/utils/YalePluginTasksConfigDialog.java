@@ -62,7 +62,7 @@ public class YalePluginTasksConfigDialog extends JDialog {
      * Method that is called when the user is not level 5 to hide certain fields
      */
     public void limitAccess() {
-        useCacheRecordsCheckBox.setEnabled(false);
+        //useCacheRecordsCheckBox.setEnabled(false);
         saveCacheToDBCheckBox.setEnabled(false);
         exportVoyagerCheckBox.setEnabled(false);
         deleteIndexButton.setEnabled(false);
@@ -175,6 +175,13 @@ public class YalePluginTasksConfigDialog extends JDialog {
         }
     }
 
+    /**
+     * Method to verify that barcodes in a container are the same
+     */
+    private void verifyContainerBarcodesButtonActionPerformed() {
+        yalePluginTasks.verifyContainerBarcodes(this, getUseCacheRecords(), true);
+    }
+
     private void initComponents() {
         // JFormDesigner - Component initialization - DO NOT MODIFY  //GEN-BEGIN:initComponents
         // Generated using JFormDesigner non-commercial license
@@ -187,6 +194,7 @@ public class YalePluginTasksConfigDialog extends JDialog {
         deleteCountLabel = new JLabel();
         runIndexButton = new JButton();
         updateAllRecordsCheckBox = new JCheckBox();
+        verifyContainerBarcodesButton = new JButton();
         highlightButton = new JButton();
         highlightLabel = new JLabel();
         highlightLabel2 = new JLabel();
@@ -196,7 +204,7 @@ public class YalePluginTasksConfigDialog extends JDialog {
         CellConstraints cc = new CellConstraints();
 
         //======== this ========
-        setTitle("Yale Tasks Config Dialog v2.01");
+        setTitle("Yale Tasks Config Dialog v2.02");
         Container contentPane = getContentPane();
         contentPane.setLayout(new BorderLayout());
 
@@ -226,12 +234,13 @@ public class YalePluginTasksConfigDialog extends JDialog {
                         FormFactory.LINE_GAP_ROWSPEC,
                         FormFactory.DEFAULT_ROWSPEC,
                         FormFactory.LINE_GAP_ROWSPEC,
+                        FormFactory.DEFAULT_ROWSPEC,
+                        FormFactory.LINE_GAP_ROWSPEC,
                         FormFactory.DEFAULT_ROWSPEC
                     }));
 
                 //---- useCacheRecordsCheckBox ----
                 useCacheRecordsCheckBox.setText("Use Cache Records");
-                useCacheRecordsCheckBox.setSelected(true);
                 contentPanel.add(useCacheRecordsCheckBox, cc.xy(1, 1));
 
                 //---- saveCacheToDBCheckBox ----
@@ -269,6 +278,15 @@ public class YalePluginTasksConfigDialog extends JDialog {
                 updateAllRecordsCheckBox.setText("Update All Records");
                 contentPanel.add(updateAllRecordsCheckBox, cc.xy(3, 9));
 
+                //---- verifyContainerBarcodesButton ----
+                verifyContainerBarcodesButton.setText("Varify Container Barcodes");
+                verifyContainerBarcodesButton.addActionListener(new ActionListener() {
+                    public void actionPerformed(ActionEvent e) {
+                        verifyContainerBarcodesButtonActionPerformed();
+                    }
+                });
+                contentPanel.add(verifyContainerBarcodesButton, cc.xy(1, 11));
+
                 //---- highlightButton ----
                 highlightButton.setText("Set Highlighted Color");
                 highlightButton.addActionListener(new ActionListener() {
@@ -276,14 +294,14 @@ public class YalePluginTasksConfigDialog extends JDialog {
                         highlightButtonActionPerformed();
                     }
                 });
-                contentPanel.add(highlightButton, cc.xy(1, 11));
+                contentPanel.add(highlightButton, cc.xy(1, 13));
 
                 //---- highlightLabel ----
                 highlightLabel.setText(" Highlighted");
                 highlightLabel.setBackground(new Color(255, 255, 102));
                 highlightLabel.setOpaque(true);
                 highlightLabel.setFont(new Font("Tahoma", Font.BOLD, 11));
-                contentPanel.add(highlightLabel, cc.xy(3, 11));
+                contentPanel.add(highlightLabel, cc.xy(3, 13));
 
                 //---- highlightLabel2 ----
                 highlightLabel2.setText(" Highlighted");
@@ -291,7 +309,7 @@ public class YalePluginTasksConfigDialog extends JDialog {
                 highlightLabel2.setOpaque(true);
                 highlightLabel2.setFont(new Font("Tahoma", Font.BOLD, 11));
                 highlightLabel2.setForeground(Color.red);
-                contentPanel.add(highlightLabel2, cc.xy(3, 13));
+                contentPanel.add(highlightLabel2, cc.xy(3, 15));
             }
             dialogPane.add(contentPanel, BorderLayout.CENTER);
 
@@ -345,6 +363,7 @@ public class YalePluginTasksConfigDialog extends JDialog {
     private JLabel deleteCountLabel;
     private JButton runIndexButton;
     private JCheckBox updateAllRecordsCheckBox;
+    private JButton verifyContainerBarcodesButton;
     private JButton highlightButton;
     private JLabel highlightLabel;
     private JLabel highlightLabel2;

@@ -285,7 +285,7 @@ public class YaleLocationAssignmentResources extends JDialog {
             // the barcode string
             String barcode;
 
-            for (int index = firstContainerIndex; index < lastContainerIndex; index++) {
+            for (int index = firstContainerIndex; index <= lastContainerIndex; index++) {
                 BoxLookupReturnRecords boxRecord = containerTableModel.getElementAt(index);
 
                 barcode = JOptionPane.showInputDialog(parentFrame, "Enter Barcode for " + boxRecord);

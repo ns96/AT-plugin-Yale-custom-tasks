@@ -2,6 +2,7 @@ package edu.yale.plugins.tasks;
 
 import edu.yale.plugins.tasks.model.ATContainer;
 import edu.yale.plugins.tasks.model.ATContainerCollection;
+import edu.yale.plugins.tasks.model.BoxLookupReturnRecords;
 import edu.yale.plugins.tasks.model.BoxLookupReturnRecordsCollection;
 import edu.yale.plugins.tasks.search.BoxLookupReturnScreen;
 import edu.yale.plugins.tasks.utils.BoxLookupAndUpdate;
@@ -13,6 +14,7 @@ import org.archiviststoolkit.dialog.ErrorDialog;
 import org.archiviststoolkit.editor.ArchDescriptionFields;
 import org.archiviststoolkit.exceptions.UnsupportedDatabaseType;
 import org.archiviststoolkit.hibernate.SessionFactory;
+import org.archiviststoolkit.importer.ImportExportLogDialog;
 import org.archiviststoolkit.model.ArchDescriptionAnalogInstances;
 import org.archiviststoolkit.model.Resources;
 import org.archiviststoolkit.model.ResourcesCommon;
@@ -33,7 +35,9 @@ import java.io.FileNotFoundException;
 import java.io.PrintWriter;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
+import java.util.Random;
 
 /**
  * Archivists' Toolkit(TM) Copyright � 2005-2007 Regents of the University of California, New York University, & Five Colleges, Inc.
@@ -94,7 +98,7 @@ public class YalePluginTasks extends Plugin implements ATPlugin {
 
     // get the category this plugin belongs to
     public String getCategory() {
-        return ATPlugin.DEFAULT_CATEGORY;
+        return ATPlugin.DEFAULT_CATEGORY + " " + ATPlugin.EMBEDDED_EDITOR_CATEGORY;
     }
 
     // get the name of this plugin
@@ -122,7 +126,7 @@ public class YalePluginTasks extends Plugin implements ATPlugin {
 
     // Method to return the jpanels for plugins that are in an AT editor
     public HashMap getEmbeddedPanels() {
-        return null;
+        return new HashMap();
     }
 
     public HashMap getRapidDataEntryPlugins() {
@@ -140,6 +144,58 @@ public class YalePluginTasks extends Plugin implements ATPlugin {
      * Method to set the domain object for this plugin
      */
     public void setModel(DomainObject domainObject, InfiniteProgressPanel monitor) {
+        detectChangesInChildRecords((Resources)domainObject);
+    }
+
+    /**
+     * A method to detect changes, including add and removing instances
+     * This is really a hack because the AT does properly detect changes in the child
+     * records
+     *
+     * @param resource
+     */
+    private void detectChangesInChildRecords(final Resources resource) {
+        Thread performer = new Thread(new Runnable() {
+            public void run() {
+                System.out.println("Waiting for changes on " + resource.toString());
+
+                while(true) {
+                    if(ApplicationFrame.getInstance().getRecordDirty()) {
+                        System.out.println("Resource record change detected ...");
+
+                        int currentLength = resource.getOtherLevel().length();
+
+                        // put a random number of blank characters in the other level to force hibernate to
+                        // update record number
+                        Random randomGenerator = new Random();
+                        int length = randomGenerator.nextInt(10);
+
+                        // make sure current length and new length are different
+                        while(currentLength == length) {
+                            length = randomGenerator.nextInt(10);
+                        }
+
+                        // generate random length blank string
+                        char[] array = new char[length];
+                        Arrays.fill(array, ' ');
+                        String dummyText = new String(array);
+
+                        resource.setOtherLevel(dummyText);
+
+                        System.out.println("old length/new length: " + currentLength + " / " + length);
+                        break;
+                    } else {
+                        try {
+                            //System.out.println("Waiting for record to be changed ...");
+                            Thread.sleep(5000);
+                        } catch (InterruptedException e) { }
+                    }
+                }
+            }
+        });
+
+        // start thread now
+        performer.start();
     }
 
     /**
@@ -382,7 +438,7 @@ public class YalePluginTasks extends Plugin implements ATPlugin {
 
     // Method to return the editor type for this plugin
     public String getEditorType() {
-        return null;
+        return RESOURCE_EDITOR;
     }
 
     /**
@@ -486,6 +542,139 @@ public class YalePluginTasks extends Plugin implements ATPlugin {
                 }
             }
         }, "Indexing Records ...");
+        performer.start();
+    }
+
+    /**
+     * Method to verify that all barcodes in a container are the same
+     */
+    public void verifyContainerBarcodes(final Window parent, final boolean useCache, final boolean gui) {
+        final ResourcesDAO access = new ResourcesDAO();
+
+        Thread performer = new Thread(new Runnable() {
+            public void run() {
+                InfiniteProgressPanel monitor = null;
+
+                if (gui) {
+                    monitor = ATProgressUtil.createModalProgressMonitor(parent, 1000, true);
+                    monitor.start("Generating index...");
+                }
+
+                long resourceId;
+                Resources selectedResource, resource;
+
+                BoxLookupAndUpdate boxLookupAndUpdate;
+                ContainerGatherer gatherer;
+
+                // start the timer object
+                MyTimer timer = new MyTimer();
+                timer.reset();
+
+                try {
+                    StringBuilder sb = new StringBuilder();
+
+                    ArrayList records = (ArrayList) access.findAll();
+
+                    int totalRecords = records.size();
+                    int barcodeMismatches = 0;
+                    int i = 1;
+                    for (Object object : records) {
+                        if (monitor != null && monitor.isProcessCancelled()) {
+                            System.out.println("Barcode verification cancelled ...");
+                            break;
+                        }
+
+                        selectedResource = (Resources) object;
+                        resourceId = selectedResource.getResourceId();
+                        resource = (Resources) access.findByPrimaryKeyLongSession(resourceId);
+
+                        // get the resource identifier
+                        String resourceIdentifier = resource.getResourceIdentifier();
+
+                        monitor.setTextLine("Verify containers for resource " + i + " of " + totalRecords + " - " + resource.getTitle(), 1);
+
+                        // index the containers
+                        gatherer = new ContainerGatherer(resource, true, false);
+                        ATContainerCollection containerCollection = gatherer.gatherContainers(monitor);
+
+                        // index the boxes
+                        boxLookupAndUpdate = new BoxLookupAndUpdate();
+                        boxLookupAndUpdate.setVoyagerInfo = false;
+
+                        // get the containers
+                        BoxLookupReturnRecordsCollection boxCollection = boxLookupAndUpdate.gatherContainersBySeries(resource, monitor, useCache);
+
+                        // now check the barcode in all instances tp see which are different
+                        for(BoxLookupReturnRecords boxRecord: boxCollection.getContainers()) {
+                            if (monitor != null && monitor.isProcessCancelled()) {
+                                System.out.println("Barcode verification cancelled ...");
+                                break;
+                            }
+
+                            try {
+                                String message = boxLookupAndUpdate.verifyBarcodes(boxRecord.getInstanceIds());
+
+                                if(!message.equals("OK")) {
+                                    barcodeMismatches++;
+
+                                    message = "\nMismatch # " + barcodeMismatches + "\nResource Id: " + resourceId + " / " + message + "\n";
+                                    sb.append(message);
+
+                                    System.out.println(message);
+                                }
+                            } catch (Exception e) {
+                                e.printStackTrace();
+                            }
+                        }
+
+                        // close the long session, otherwise memory would quickly run out
+                        access.closeLongSession();
+                        access.getLongSession();
+
+                        i++;
+                    }
+
+                    String message = sb.toString() + "\nTotal time for verification " + i + " records: " +
+                            MyTimer.toString(timer.elapsedTimeMillis());
+
+                    if (gui) {
+                        monitor.close();
+
+                        ImportExportLogDialog logDialog = new ImportExportLogDialog(null, ImportExportLogDialog.DIALOG_TYPE_EXPORT, message);
+                        logDialog.setTitle("Container Barcode Verification");
+                        logDialog.showDialog();
+                    }
+
+                    System.out.println(message);
+                } catch (LookupException e) {
+                    if (gui) {
+                        monitor.close();
+                        new ErrorDialog("Error loading resource", e).showDialog();
+                    }
+                    e.printStackTrace();
+                } catch (PersistenceException e) {
+                    if (gui) {
+                        new ErrorDialog("Error looking up accession date", e).showDialog();
+                    }
+                    e.printStackTrace();
+                } catch (SQLException e) {
+                    if (gui) {
+                        new ErrorDialog("Error resetting the long session", e).showDialog();
+                    }
+                    e.printStackTrace();
+                } catch (ClassNotFoundException e) {
+                    if (gui) {
+                        monitor.close();
+                        new ErrorDialog("Exception", e).showDialog();
+                    }
+                    e.printStackTrace();
+                } finally {
+                    if (gui) {
+                        monitor.close();
+                    }
+                }
+            }
+        }, "Verifying Container Barcodes");
         performer.start();
     }
 

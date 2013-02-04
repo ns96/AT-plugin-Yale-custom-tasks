@@ -811,6 +811,46 @@ public class BoxLookupAndUpdate {
     }
 
     /**
+     * Method to verify that barcodes for all instances are equal
+     *
+     * @param instanceIds
+     */
+    public String verifyBarcodes(String instanceIds) throws Exception {
+        String message = "OK";
+
+        String[] ids = instanceIds.split(",\\s*");
+
+        // for each id get the analog instance object from the database and compare barcode
+        String barcode = null;
+        for (String id : ids) {
+            Long lid = new Long(id);
+
+            ArchDescriptionAnalogInstances instance = (ArchDescriptionAnalogInstances) instanceDAO.findByPrimaryKeyLongSession(lid);
+            String currentBarcode = instance.getBarcode();
+
+            if(barcode == null) {
+                barcode = currentBarcode;
+            } else if(!barcode.equals(currentBarcode)) {
+                ResourcesComponents component = instance.getResourceComponent();
+
+                String recordLocation  = "";
+
+                if(component.getResourceComponentParent() != null) {
+                    String seriesName = component.getResourceComponentParent().getTitle();
+                    recordLocation = seriesName + " / " + component.getTitle() + " :: " + component.getPersistentId();
+                } else {
+                    recordLocation = component.getTitle() + " :: " + component.getPersistentId();
+                }
+
+                message = recordLocation + "\n" + currentBarcode + " != " + barcode;
+                break;
+            }
+        }
+
+        return message;
+    }
+
+    /**
      * Method add a location to a set of analog instance
      *
      * @param instanceIds
