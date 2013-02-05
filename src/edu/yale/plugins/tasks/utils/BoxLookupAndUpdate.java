@@ -33,7 +33,6 @@ import org.archiviststoolkit.mydomain.DomainAccessObjectFactory;
 import org.archiviststoolkit.mydomain.DomainAccessObject;
 import org.archiviststoolkit.mydomain.PersistenceException;
 import org.archiviststoolkit.mydomain.LookupException;
-import org.hibernate.TransientObjectException;
 
 import java.sql.*;
 import java.util.*;
@@ -67,8 +66,8 @@ public class BoxLookupAndUpdate {
     private PreparedStatement componentLookupByComponent;
     private PreparedStatement instanceLookupByComponent;
 
-    // keep tract of the number of instances processed
-    private int instanceCount;
+    // keep track of the number of instances processed
+    private int instanceCount = 0;
 
     public BoxLookupAndUpdate() throws SQLException, ClassNotFoundException {
         Class.forName(SessionFactory.getDriverClass());
@@ -815,14 +814,20 @@ public class BoxLookupAndUpdate {
      *
      * @param instanceIds
      */
-    public String verifyBarcodes(String instanceIds) throws Exception {
+    public String verifyBarcodes(String instanceIds, InfiniteProgressPanel monitor) throws Exception {
         String message = "OK";
 
         String[] ids = instanceIds.split(",\\s*");
+        int totalCount = ids.length;
+
+        if(totalCount <= 1) return message;
 
         // for each id get the analog instance object from the database and compare barcode
         String barcode = null;
+        int count = 0;
+
         for (String id : ids) {
+            count++;
             Long lid = new Long(id);
 
             ArchDescriptionAnalogInstances instance = (ArchDescriptionAnalogInstances) instanceDAO.findByPrimaryKeyLongSession(lid);
@@ -833,6 +838,7 @@ public class BoxLookupAndUpdate {
             } else if(!barcode.equals(currentBarcode)) {
                 ResourcesComponents component = instance.getResourceComponent();
 
+                String barcodeText = currentBarcode + " != " + barcode;
                 String recordLocation  = "";
 
                 if(component.getResourceComponentParent() != null) {
@@ -842,12 +848,32 @@ public class BoxLookupAndUpdate {
                     recordLocation = component.getTitle() + " :: " + component.getPersistentId();
                 }
 
-                message = recordLocation + "\n" + currentBarcode + " != " + barcode;
+                message = recordLocation + "\n" + barcodeText;
+
+                if(monitor != null) {
+                    monitor.setTextLine(recordLocation, 5);
+                    monitor.setTextLine(barcodeText, 6);
+                }
+
                 break;
+            } else {
+                if(monitor != null) {
+                    monitor.setTextLine("Checking Instance # " + count + " :: " + instance.getInstanceLabel(), 5);
+                }
             }
         }
 
+        instanceCount += count;
+
         return message;
+    }
+
+    /**
+     * Method to reutrn the number of instances checked
+     * @return
+     */
+    public int getNumberOfInstanceChecked() {
+        return instanceCount;
     }
 
     /**

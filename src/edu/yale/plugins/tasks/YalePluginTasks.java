@@ -577,7 +577,10 @@ public class YalePluginTasks extends Plugin implements ATPlugin {
 
                     int totalRecords = records.size();
                     int barcodeMismatches = 0;
+                    int totalInstances = 0;
+
                     int i = 1;
+
                     for (Object object : records) {
                         if (monitor != null && monitor.isProcessCancelled()) {
                             System.out.println("Barcode verification cancelled ...");
@@ -591,7 +594,7 @@ public class YalePluginTasks extends Plugin implements ATPlugin {
                         // get the resource identifier
                         String resourceIdentifier = resource.getResourceIdentifier();
 
-                        monitor.setTextLine("Verify containers for resource " + i + " of " + totalRecords + " - " + resource.getTitle(), 1);
+                        monitor.setTextLine("Verifying barcodes for resource " + i + " of " + totalRecords + " - " + resource.getTitle(), 1);
 
                         // index the containers
                         gatherer = new ContainerGatherer(resource, true, false);
@@ -612,7 +615,12 @@ public class YalePluginTasks extends Plugin implements ATPlugin {
                             }
 
                             try {
-                                String message = boxLookupAndUpdate.verifyBarcodes(boxRecord.getInstanceIds());
+                                if (gui) {
+                                    monitor.setTextLine("", 2);
+                                    monitor.setTextLine("Processing Container: " + boxRecord.getUniqueId(), 4);
+                                }
+
+                                String message = boxLookupAndUpdate.verifyBarcodes(boxRecord.getInstanceIds(), monitor);
 
                                 if(!message.equals("OK")) {
                                     barcodeMismatches++;
@@ -627,6 +635,9 @@ public class YalePluginTasks extends Plugin implements ATPlugin {
                             }
                         }
 
+                        // set the total instances
+                        totalInstances += boxLookupAndUpdate.getNumberOfInstanceChecked();
+
                         // close the long session, otherwise memory would quickly run out
                         access.closeLongSession();
                         access.getLongSession();
@@ -634,7 +645,8 @@ public class YalePluginTasks extends Plugin implements ATPlugin {
                         i++;
                     }
 
-                    String message = sb.toString() + "\nTotal time for verification " + i + " records: " +
+                    String message = sb.toString() + "\nTotal time for verification of " + i + " records / " +
+                            totalInstances + " instances : " +
                             MyTimer.toString(timer.elapsedTimeMillis());
 
                     if (gui) {
