@@ -817,11 +817,65 @@ public class BoxLookupAndUpdate {
     public String verifyBarcodes(String instanceIds, InfiniteProgressPanel monitor) throws Exception {
         String message = "OK";
 
+        // DEBUG
+        //instanceIds += ", 4, 27, 2345";
+
         String[] ids = instanceIds.split(",\\s*");
         int totalCount = ids.length;
+        instanceCount += totalCount;
 
-        if(totalCount <= 1) return message;
+        // use the sql query statement to find unique barcodes.
+        Statement stmt = con.createStatement();
+        String sqlString = "SELECT DISTINCT barcode FROM ArchDescriptionInstances " +
+                "WHERE ArchDescriptionInstancesId IN (" + instanceIds + ")";
 
+        ResultSet uniqueBarcodes = stmt.executeQuery(sqlString);
+
+        String barcodes = "";
+        int count = 0;
+
+        while (uniqueBarcodes.next()) {
+            count++;
+            if(count != 1) {
+                barcodes += ", " + uniqueBarcodes.getString(1);
+            } else {
+                barcodes += uniqueBarcodes.getString(1);
+            }
+        }
+
+        // print out some information
+        String consoleMessage = count + " unique barcode(s) in " + totalCount + " instances: " + barcodes;
+        if(monitor != null) {
+            monitor.setTextLine(consoleMessage, 5);
+        }
+        System.out.println(consoleMessage);
+
+        if(count > 1) {
+            Long lid = new Long(ids[0]);
+
+            ArchDescriptionAnalogInstances instance = (ArchDescriptionAnalogInstances) instanceDAO.findByPrimaryKeyLongSession(lid);
+
+            ResourcesComponents component = instance.getResourceComponent();
+
+            String barcodeText = "Barcodes: " + barcodes;
+            String recordLocation  = "";
+
+            if(component.getResourceComponentParent() != null) {
+                String seriesName = component.getResourceComponentParent().getTitle();
+                recordLocation = seriesName + " / " + component.getTitle() + " :: " + component.getPersistentId();
+            } else {
+                recordLocation = component.getTitle() + " :: " + component.getPersistentId();
+            }
+
+            message = recordLocation + "\n" + barcodeText;
+
+            if(monitor != null) {
+                monitor.setTextLine(recordLocation, 5);
+                monitor.setTextLine(barcodeText, 6);
+            }
+        }
+
+        /*
         // for each id get the analog instance object from the database and compare barcode
         String barcode = null;
         int count = 0;
@@ -861,9 +915,7 @@ public class BoxLookupAndUpdate {
                     monitor.setTextLine("Checking Instance # " + count + " :: " + instance.getInstanceLabel(), 5);
                 }
             }
-        }
-
-        instanceCount += count;
+        }*/
 
         return message;
     }

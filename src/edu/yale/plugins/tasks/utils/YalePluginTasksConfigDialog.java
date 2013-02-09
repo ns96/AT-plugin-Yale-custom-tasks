@@ -68,6 +68,7 @@ public class YalePluginTasksConfigDialog extends JDialog {
         deleteIndexButton.setEnabled(false);
         deleteCountLabel.setEnabled(false);
         runIndexButton.setEnabled(false);
+        verifyContainerBarcodesButton.setEnabled(false);
         updateAllRecordsCheckBox.setEnabled(false);
     }
 
@@ -204,7 +205,7 @@ public class YalePluginTasksConfigDialog extends JDialog {
         CellConstraints cc = new CellConstraints();
 
         //======== this ========
-        setTitle("Yale Tasks Config Dialog v2.02");
+        setTitle("Yale Tasks Config Dialog v2.03");
         Container contentPane = getContentPane();
         contentPane.setLayout(new BorderLayout());
 
