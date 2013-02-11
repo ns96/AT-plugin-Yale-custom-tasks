@@ -25,14 +25,11 @@ import edu.yale.plugins.tasks.model.BoxLookupReturnRecordsCollection;
 import edu.yale.plugins.tasks.search.BoxLookupReturnScreen;
 import org.archiviststoolkit.dialog.ErrorDialog;
 import org.archiviststoolkit.model.*;
+import org.archiviststoolkit.mydomain.*;
 import org.archiviststoolkit.swing.InfiniteProgressPanel;
 import org.archiviststoolkit.util.MyTimer;
 import org.archiviststoolkit.util.StringHelper;
 import org.archiviststoolkit.hibernate.SessionFactory;
-import org.archiviststoolkit.mydomain.DomainAccessObjectFactory;
-import org.archiviststoolkit.mydomain.DomainAccessObject;
-import org.archiviststoolkit.mydomain.PersistenceException;
-import org.archiviststoolkit.mydomain.LookupException;
 
 import java.sql.*;
 import java.util.*;
@@ -57,6 +54,8 @@ public class BoxLookupAndUpdate {
     private DomainAccessObject locationDAO;
 
     private DomainAccessObject instanceDAO;
+
+    private DomainAccessObject componentDAO;
 
     private Connection con;
 
@@ -114,7 +113,7 @@ public class BoxLookupAndUpdate {
 
         sqlString = "SELECT *" +
                 "FROM ArchDescriptionInstances\n" +
-                "WHERE resourceComponentId in (?)";
+                "WHERE resourceComponentId IN (?)";
         instanceLookupByComponent = con.prepareStatement(sqlString);
     }
 
@@ -127,6 +126,9 @@ public class BoxLookupAndUpdate {
 
         instanceDAO = DomainAccessObjectFactory.getInstance().getDomainAccessObject(ArchDescriptionAnalogInstances.class);
         instanceDAO.getLongSession();
+
+        componentDAO = new ResourcesComponentsDAO();
+        componentDAO.getLongSession();
     }
 
     public void doSearch(String msNumber, String ruNumber, String seriesTitle, String accessionNumber, String boxNumber, BoxLookupReturnScreen returnSrceen) {
@@ -304,7 +306,8 @@ public class BoxLookupAndUpdate {
 
         componentTitleLookup = new HashMap<Long, String>();
 
-        Collection<BoxLookupReturnRecords> boxRecords = new ArrayList<BoxLookupReturnRecords>();
+        //Collection<BoxLookupReturnRecords> boxRecords = new ArrayList<BoxLookupReturnRecords>();
+        TreeMap<String, BoxLookupReturnRecords> boxRecords = new TreeMap<String, BoxLookupReturnRecords>();
 
         try {
             // initialize the prepared statements
@@ -427,7 +430,7 @@ public class BoxLookupAndUpdate {
                                 containerInfo.getContainerType());
 
                         boxLookupReturnRecord.addInstanceId(instanceId);
-                        boxRecords.add(boxLookupReturnRecord);
+                        boxRecords.put(containerLabel, boxLookupReturnRecord);
 
                         logMessage = "Accession Number: " + series.getUniqueId() +
                                 " Series Title: " + series.getSeriesTitle() +
@@ -440,7 +443,7 @@ public class BoxLookupAndUpdate {
                         if(monitor != null) monitor.setTextLine(message, 5);
                     } else {
                         // add the instance
-                        boxLookupReturnRecord.addInstanceId(instanceId);
+                        boxRecords.get(containerLabel).addInstanceId(instanceId);
 
                         message = "Adding Instance -- " + containerLabel;
                         System.out.println(message);
@@ -450,7 +453,7 @@ public class BoxLookupAndUpdate {
             }
 
             // create the box collection record
-            BoxLookupReturnRecordsCollection boxCollection = new BoxLookupReturnRecordsCollection(boxRecords,
+            BoxLookupReturnRecordsCollection boxCollection = new BoxLookupReturnRecordsCollection(boxRecords.values(),
                     resourceId, resourceVersion, instanceCount);
 
             // store a copy of this for future access on the database
@@ -819,109 +822,85 @@ public class BoxLookupAndUpdate {
 
         // DEBUG
         //instanceIds += ", 4, 27, 2345";
-
         String[] ids = instanceIds.split(",\\s*");
+
         int totalCount = ids.length;
         instanceCount += totalCount;
 
         // use the sql query statement to find unique barcodes.
         Statement stmt = con.createStatement();
-        String sqlString = "SELECT DISTINCT barcode FROM ArchDescriptionInstances " +
+        String sqlString = "SELECT COUNT(DISTINCT barcode) FROM ArchDescriptionInstances " +
                 "WHERE ArchDescriptionInstancesId IN (" + instanceIds + ")";
 
         ResultSet uniqueBarcodes = stmt.executeQuery(sqlString);
+        uniqueBarcodes.first();
 
-        String barcodes = "";
-        int count = 0;
-
-        while (uniqueBarcodes.next()) {
-            count++;
-            if(count != 1) {
-                barcodes += ", " + uniqueBarcodes.getString(1);
-            } else {
-                barcodes += uniqueBarcodes.getString(1);
-            }
-        }
+        int count = uniqueBarcodes.getInt(1);
 
         // print out some information
-        String consoleMessage = count + " unique barcode(s) in " + totalCount + " instances: " + barcodes;
+        String consoleMessage = count + " unique barcode(s) in " + totalCount + " instances";
         if(monitor != null) {
             monitor.setTextLine(consoleMessage, 5);
         }
+
         System.out.println(consoleMessage);
 
         if(count > 1) {
-            Long lid = new Long(ids[0]);
-
-            ArchDescriptionAnalogInstances instance = (ArchDescriptionAnalogInstances) instanceDAO.findByPrimaryKeyLongSession(lid);
-
-            ResourcesComponents component = instance.getResourceComponent();
-
-            String barcodeText = "Barcodes: " + barcodes;
-            String recordLocation  = "";
-
-            if(component.getResourceComponentParent() != null) {
-                String seriesName = component.getResourceComponentParent().getTitle();
-                recordLocation = seriesName + " / " + component.getTitle() + " :: " + component.getPersistentId();
-            } else {
-                recordLocation = component.getTitle() + " :: " + component.getPersistentId();
-            }
-
-            message = recordLocation + "\n" + barcodeText;
+            String componentInformation  = getInstanceComponentInfo(stmt, instanceIds);
+            message = componentInformation;
 
             if(monitor != null) {
-                monitor.setTextLine(recordLocation, 5);
-                monitor.setTextLine(barcodeText, 6);
+                monitor.setTextLine(componentInformation, 5);
             }
         }
-
-        /*
-        // for each id get the analog instance object from the database and compare barcode
-        String barcode = null;
-        int count = 0;
-
-        for (String id : ids) {
-            count++;
-            Long lid = new Long(id);
-
-            ArchDescriptionAnalogInstances instance = (ArchDescriptionAnalogInstances) instanceDAO.findByPrimaryKeyLongSession(lid);
-            String currentBarcode = instance.getBarcode();
-
-            if(barcode == null) {
-                barcode = currentBarcode;
-            } else if(!barcode.equals(currentBarcode)) {
-                ResourcesComponents component = instance.getResourceComponent();
-
-                String barcodeText = currentBarcode + " != " + barcode;
-                String recordLocation  = "";
-
-                if(component.getResourceComponentParent() != null) {
-                    String seriesName = component.getResourceComponentParent().getTitle();
-                    recordLocation = seriesName + " / " + component.getTitle() + " :: " + component.getPersistentId();
-                } else {
-                    recordLocation = component.getTitle() + " :: " + component.getPersistentId();
-                }
-
-                message = recordLocation + "\n" + barcodeText;
-
-                if(monitor != null) {
-                    monitor.setTextLine(recordLocation, 5);
-                    monitor.setTextLine(barcodeText, 6);
-                }
-
-                break;
-            } else {
-                if(monitor != null) {
-                    monitor.setTextLine("Checking Instance # " + count + " :: " + instance.getInstanceLabel(), 5);
-                }
-            }
-        }*/
 
         return message;
     }
 
     /**
-     * Method to reutrn the number of instances checked
+     * Method to get information about the parent and series component of an instance
+     *
+     * @param instanceIds
+     * @return
+     */
+    private String getInstanceComponentInfo(Statement stmt, String instanceIds) throws Exception {
+        String sqlString = "SELECT DISTINCT resourceComponentId, ArchDescriptionInstancesId FROM ArchDescriptionInstances " +
+                "WHERE ArchDescriptionInstancesId IN (" + instanceIds + ")";
+
+        ResultSet uniqueComponents = stmt.executeQuery(sqlString);
+
+        // get all the information for the components
+        StringBuilder sb = new StringBuilder();
+
+        while(uniqueComponents.next()) {
+            Long cid = uniqueComponents.getLong(1); // component id
+            Long id = uniqueComponents.getLong(2); // instance id
+
+            ResourcesComponents component = (ResourcesComponents) componentDAO.findByPrimaryKeyLongSession(cid);
+            ArchDescriptionAnalogInstances instance = (ArchDescriptionAnalogInstances) instanceDAO.findByPrimaryKeyLongSession(id);
+
+            // add component information
+            String componentInfo = component.getTitle() + " :: (" + component.getPersistentId() + ", " + component.getIdentifier() + ")";
+            if(component.getResourceComponentParent() != null) {
+                String seriesName = component.getResourceComponentParent().getTitle();
+                sb.append(seriesName).append(" / ").append(componentInfo).append("\n");
+            } else {
+                sb.append(componentInfo).append("\n");
+            }
+
+            // add instance information
+            String barcode = instance.getBarcode();
+            if(barcode.isEmpty()) {
+                barcode = "NULL";
+            }
+            sb.append(instance.getInstanceLabel()).append(" || Barcode: ").append(barcode).append("\n");
+        }
+
+        return sb.toString();
+    }
+
+    /**
+     * Method to return the number of instances checked
      * @return
      */
     public int getNumberOfInstanceChecked() {
@@ -955,6 +934,17 @@ public class BoxLookupAndUpdate {
         }
 
         return count;
+    }
+
+    /**
+     * Method to close the database connection
+     */
+    public void closeConnection() {
+        try {
+            con.close();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
     }
 
     private class ContainerInfo {

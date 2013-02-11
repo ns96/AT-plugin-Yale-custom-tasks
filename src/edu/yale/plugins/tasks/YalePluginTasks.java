@@ -625,7 +625,7 @@ public class YalePluginTasks extends Plugin implements ATPlugin {
                                 if(!message.equals("OK")) {
                                     barcodeMismatches++;
 
-                                    message = "\nMismatch # " + barcodeMismatches + "\nResource Id: " + resourceId + " / " + message + "\n";
+                                    message = "\nMismatch # " + barcodeMismatches + "\nResource Id: " + resource.getResourceIdentifier() + "\n" + message + "\n";
                                     sb.append(message);
 
                                     System.out.println(message);
@@ -638,7 +638,9 @@ public class YalePluginTasks extends Plugin implements ATPlugin {
                         // set the total instances
                         totalInstances += boxLookupAndUpdate.getNumberOfInstanceChecked();
 
-                        // close the long session, otherwise memory would quickly run out
+                        // close the database connecion and long sessions, otherwise memory would quickly run out
+                        boxLookupAndUpdate.closeConnection();
+
                         access.closeLongSession();
                         access.getLongSession();
 
