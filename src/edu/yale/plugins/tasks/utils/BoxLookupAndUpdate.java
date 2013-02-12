@@ -443,7 +443,12 @@ public class BoxLookupAndUpdate {
                         if(monitor != null) monitor.setTextLine(message, 5);
                     } else {
                         // add the instance
-                        boxRecords.get(containerLabel).addInstanceId(instanceId);
+                        if(boxRecords.containsKey(containerLabel)) {
+                            boxRecords.get(containerLabel).addInstanceId(instanceId);
+                        } else {
+                            // we should never reach here
+                            System.out.println("No container to plance instance");
+                        }
 
                         message = "Adding Instance -- " + containerLabel;
                         System.out.println(message);
