@@ -205,7 +205,7 @@ public class YalePluginTasksConfigDialog extends JDialog {
         CellConstraints cc = new CellConstraints();
 
         //======== this ========
-        setTitle("Yale Tasks Config Dialog v2.03");
+        setTitle("Yale Tasks Config Dialog v2.04");
         Container contentPane = getContentPane();
         contentPane.setLayout(new BorderLayout());
 

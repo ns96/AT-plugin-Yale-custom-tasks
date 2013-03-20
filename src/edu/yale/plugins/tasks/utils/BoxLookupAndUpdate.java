@@ -262,13 +262,12 @@ public class BoxLookupAndUpdate {
                                 " Restrictions: " + container.isRestriction();
 
                     }
-
-
-
-                    returnSrceen.updateResultList(results);
-                    returnSrceen.setElapsedTimeText(MyTimer.toString(timer.elapsedTimeMillis()));
                 }
             }
+
+            // update the user interface now
+            returnSrceen.updateResultList(results);
+            returnSrceen.setElapsedTimeText(MyTimer.toString(timer.elapsedTimeMillis()));
         } catch (SQLException e) {
             new ErrorDialog("", e).showDialog();
         } catch (LookupException e) {
@@ -307,7 +306,7 @@ public class BoxLookupAndUpdate {
         componentTitleLookup = new HashMap<Long, String>();
 
         //Collection<BoxLookupReturnRecords> boxRecords = new ArrayList<BoxLookupReturnRecords>();
-        TreeMap<String, BoxLookupReturnRecords> boxRecords = new TreeMap<String, BoxLookupReturnRecords>();
+        HashMap<String, BoxLookupReturnRecords> boxRecords = new HashMap<String, BoxLookupReturnRecords>();
 
         try {
             // initialize the prepared statements
@@ -430,7 +429,7 @@ public class BoxLookupAndUpdate {
                                 containerInfo.getContainerType());
 
                         boxLookupReturnRecord.addInstanceId(instanceId);
-                        boxRecords.put(containerLabel, boxLookupReturnRecord);
+                        boxRecords.put(series.getUniqueId()+ "_" + containerLabel, boxLookupReturnRecord);
 
                         logMessage = "Accession Number: " + series.getUniqueId() +
                                 " Series Title: " + series.getSeriesTitle() +
@@ -443,8 +442,8 @@ public class BoxLookupAndUpdate {
                         if(monitor != null) monitor.setTextLine(message, 5);
                     } else {
                         // add the instance
-                        if(boxRecords.containsKey(containerLabel)) {
-                            boxRecords.get(containerLabel).addInstanceId(instanceId);
+                        if(boxRecords.containsKey(series.getUniqueId()+ "_" + containerLabel)) {
+                            boxRecords.get(series.getUniqueId()+ "_" + containerLabel).addInstanceId(instanceId);
                         } else {
                             // we should never reach here
                             System.out.println("No container to plance instance");
