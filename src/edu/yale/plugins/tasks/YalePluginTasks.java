@@ -692,6 +692,103 @@ public class YalePluginTasks extends Plugin implements ATPlugin {
         performer.start();
     }
 
+    /**
+     * Method to index records i.e cache box and container information in the database
+     */
+    public void generateReport(final Window parent, final boolean gui) {
+        final ResourcesDAO access = new ResourcesDAO();
+
+        Thread performer = new Thread(new Runnable() {
+            public void run() {
+                InfiniteProgressPanel monitor = null;
+
+                if (gui) {
+                    monitor = ATProgressUtil.createModalProgressMonitor(parent, 1000, true);
+                    monitor.start("Searching Records ...");
+                }
+
+                long resourceId;
+                Resources selectedResource, resource;
+
+                BoxLookupAndUpdate boxLookupAndUpdate;
+                ContainerGatherer gatherer;
+
+                // start the timer object
+                MyTimer timer = new MyTimer();
+                timer.reset();
+
+                try {
+                    HashMap<String, BoxLookupReturnRecordsCollection> recordsForReport = new HashMap<String, BoxLookupReturnRecordsCollection>();
+                    ArrayList records = (ArrayList) access.findAll();
+
+                    int totalRecords = records.size();
+                    int i = 1;
+                    for (Object object : records) {
+                        if (monitor != null && monitor.isProcessCancelled()) {
+                            System.out.println("Report cancelled ...");
+                            break;
+                        }
+
+                        selectedResource = (Resources) object;
+                        resourceId = selectedResource.getResourceId();
+                        resource = (Resources) access.findByPrimaryKeyLongSession(resourceId);
+
+                        monitor.setTextLine("Searching resource " + i + " of " + totalRecords + " - " + resource.getTitle(), 1);
+
+                        // index the boxes
+                        boxLookupAndUpdate = new BoxLookupAndUpdate();
+                        BoxLookupReturnRecordsCollection boxCollection = boxLookupAndUpdate.gatherContainersBySeries(resource, monitor, true);
+                        recordsForReport.put(resource.getResourceIdentifier(), boxCollection);
+
+
+                        // close the long session, otherwise memory would quickly run out
+                        access.closeLongSession();
+                        access.getLongSession();
+
+                        i++;
+                    }
+
+                    String message = "Total time for report generation " + i + " records: " + MyTimer.toString(timer.elapsedTimeMillis());
+
+                    if (gui) {
+                        monitor.close();
+
+                        // record generation will take place here
+
+                        JOptionPane.showMessageDialog(parent,
+                                message,
+                                "Report Generation Completed",
+                                JOptionPane.PLAIN_MESSAGE);
+                    }
+
+                    System.out.println(message);
+                } catch (LookupException e) {
+                    if (gui) {
+                        monitor.close();
+                        new ErrorDialog("Error loading resource", e).showDialog();
+                    }
+                    e.printStackTrace();
+                } catch (SQLException e) {
+                    if (gui) {
+                        new ErrorDialog("Error resetting the long session", e).showDialog();
+                    }
+                    e.printStackTrace();
+                } catch (ClassNotFoundException e) {
+                    if (gui) {
+                        monitor.close();
+                        new ErrorDialog("Exception", e).showDialog();
+                    }
+                    e.printStackTrace();
+                } finally {
+                    if (gui) {
+                        monitor.close();
+                    }
+                }
+            }
+        }, "Generating Report ...");
+        performer.start();
+    }
+
     // code that is executed when plugin starts. not used here
     protected void doStart() {
     }
