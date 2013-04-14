@@ -693,100 +693,121 @@ public class YalePluginTasks extends Plugin implements ATPlugin {
     }
 
     /**
-     * Method to index records i.e cache box and container information in the database
+     * Method generate a report list A/V holdings in the database
      */
-    public void generateReport(final Window parent, final boolean gui) {
+    public void generateAVReport(final Window parent, final boolean gui) {
         final ResourcesDAO access = new ResourcesDAO();
 
-        Thread performer = new Thread(new Runnable() {
-            public void run() {
-                InfiniteProgressPanel monitor = null;
+        ATFileChooser filechooser = new ATFileChooser();
 
-                if (gui) {
-                    monitor = ATProgressUtil.createModalProgressMonitor(parent, 1000, true);
-                    monitor.start("Searching Records ...");
-                }
+        if (filechooser.showSaveDialog(parent) == JFileChooser.APPROVE_OPTION) {
+            final File outputFile = filechooser.getSelectedFile();
 
-                long resourceId;
-                Resources selectedResource, resource;
+            Thread performer = new Thread(new Runnable() {
+                public void run() {
+                    InfiniteProgressPanel monitor = null;
 
-                BoxLookupAndUpdate boxLookupAndUpdate;
-                ContainerGatherer gatherer;
+                    if (gui) {
+                        monitor = ATProgressUtil.createModalProgressMonitor(parent, 1000, true);
+                        monitor.start("Searching Records ...");
+                    }
 
-                // start the timer object
-                MyTimer timer = new MyTimer();
-                timer.reset();
+                    long resourceId;
+                    Resources selectedResource, resource;
 
-                try {
-                    HashMap<String, BoxLookupReturnRecordsCollection> recordsForReport = new HashMap<String, BoxLookupReturnRecordsCollection>();
-                    ArrayList records = (ArrayList) access.findAll();
+                    BoxLookupAndUpdate boxLookupAndUpdate;
+                    ContainerGatherer gatherer;
 
-                    int totalRecords = records.size();
-                    int i = 1;
-                    for (Object object : records) {
-                        if (monitor != null && monitor.isProcessCancelled()) {
-                            System.out.println("Report cancelled ...");
-                            break;
+                    // start the timer object
+                    MyTimer timer = new MyTimer();
+                    timer.reset();
+
+                    final String DELIMITER = "\t";
+
+                    try {
+                        PrintWriter writer = new PrintWriter(outputFile);
+
+                        ArrayList records = (ArrayList) access.findAll();
+
+                        int totalRecords = records.size();
+                        int i = 1;
+                        for (Object object : records) {
+                            if (monitor != null && monitor.isProcessCancelled()) {
+                                System.out.println("Report generation cancelled ...");
+                                break;
+                            }
+
+                            selectedResource = (Resources) object;
+                            resourceId = selectedResource.getResourceId();
+                            resource = (Resources) access.findByPrimaryKeyLongSession(resourceId);
+
+                            monitor.setTextLine("Searching resource " + i + " of " + totalRecords + " - " + resource.getTitle(), 1);
+
+                            // index the boxes
+                            boxLookupAndUpdate = new BoxLookupAndUpdate();
+                            BoxLookupReturnRecordsCollection boxCollection = boxLookupAndUpdate.gatherContainersBySeriesForReport(resource, monitor, true);
+
+                            // write out the results found so far to the file
+                            for (BoxLookupReturnRecords boxRecord : boxCollection.getContainers()) {
+                                writer.println(resource.getResourceIdentifier2() + DELIMITER +
+                                        boxRecord.getBoxLabel() + DELIMITER + boxRecord.getBarcode());
+
+                            }
+
+                            // close the long session, otherwise memory would quickly run out
+                            access.closeLongSession();
+                            access.getLongSession();
+
+                            i++;
                         }
 
-                        selectedResource = (Resources) object;
-                        resourceId = selectedResource.getResourceId();
-                        resource = (Resources) access.findByPrimaryKeyLongSession(resourceId);
+                        // flush the writer to persist buffer to disk
+                        writer.flush();
 
-                        monitor.setTextLine("Searching resource " + i + " of " + totalRecords + " - " + resource.getTitle(), 1);
+                        String message = "Total time for report generation " + i + " records: " + MyTimer.toString(timer.elapsedTimeMillis());
 
-                        // index the boxes
-                        boxLookupAndUpdate = new BoxLookupAndUpdate();
-                        BoxLookupReturnRecordsCollection boxCollection = boxLookupAndUpdate.gatherContainersBySeries(resource, monitor, true);
-                        recordsForReport.put(resource.getResourceIdentifier(), boxCollection);
+                        if (gui) {
+                            monitor.close();
 
+                            JOptionPane.showMessageDialog(parent,
+                                    message,
+                                    "Report Generation Completed",
+                                    JOptionPane.PLAIN_MESSAGE);
+                        }
 
-                        // close the long session, otherwise memory would quickly run out
-                        access.closeLongSession();
-                        access.getLongSession();
-
-                        i++;
-                    }
-
-                    String message = "Total time for report generation " + i + " records: " + MyTimer.toString(timer.elapsedTimeMillis());
-
-                    if (gui) {
-                        monitor.close();
-
-                        // record generation will take place here
-
-                        JOptionPane.showMessageDialog(parent,
-                                message,
-                                "Report Generation Completed",
-                                JOptionPane.PLAIN_MESSAGE);
-                    }
-
-                    System.out.println(message);
-                } catch (LookupException e) {
-                    if (gui) {
-                        monitor.close();
-                        new ErrorDialog("Error loading resource", e).showDialog();
-                    }
-                    e.printStackTrace();
-                } catch (SQLException e) {
-                    if (gui) {
-                        new ErrorDialog("Error resetting the long session", e).showDialog();
-                    }
-                    e.printStackTrace();
-                } catch (ClassNotFoundException e) {
-                    if (gui) {
-                        monitor.close();
-                        new ErrorDialog("Exception", e).showDialog();
-                    }
-                    e.printStackTrace();
-                } finally {
-                    if (gui) {
-                        monitor.close();
+                        System.out.println(message);
+                    } catch (LookupException e) {
+                        if (gui) {
+                            monitor.close();
+                            new ErrorDialog("Error loading resource", e).showDialog();
+                        }
+                        e.printStackTrace();
+                    } catch (SQLException e) {
+                        if (gui) {
+                            new ErrorDialog("Error resetting the long session", e).showDialog();
+                        }
+                        e.printStackTrace();
+                    } catch (ClassNotFoundException e) {
+                        if (gui) {
+                            monitor.close();
+                            new ErrorDialog("Exception", e).showDialog();
+                        }
+                        e.printStackTrace();
+                    } catch (FileNotFoundException e) {
+                        if (gui) {
+                            monitor.close();
+                            new ErrorDialog("Exception", e).showDialog();
+                        }
+                        e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
+                    } finally {
+                        if (gui) {
+                            monitor.close();
+                        }
                     }
                 }
-            }
-        }, "Generating Report ...");
-        performer.start();
+            }, "Generating Report ...");
+            performer.start();
+        }
     }
 
     // code that is executed when plugin starts. not used here

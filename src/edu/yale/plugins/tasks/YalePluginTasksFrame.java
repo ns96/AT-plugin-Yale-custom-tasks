@@ -277,6 +277,13 @@ public class YalePluginTasksFrame extends JFrame {
         }
     }
 
+    /**
+     * Method to generate a report which list the A/V material in the repository
+     */
+    private void avReportButtonActionPerformed() {
+
+    }
+
     private void initComponents() {
         // JFormDesigner - Component initialization - DO NOT MODIFY  //GEN-BEGIN:initComponents
         // Generated using JFormDesigner non-commercial license
@@ -286,6 +293,7 @@ public class YalePluginTasksFrame extends JFrame {
         voyagerExportButton = new JButton();
         boxSearchButton = new JButton();
         indexButton = new JButton();
+        avReportButton = new JButton();
         buttonBar = new JPanel();
         showConfigDialogButton = new JButton();
         showDBDialogButton = new JButton();
@@ -293,7 +301,7 @@ public class YalePluginTasksFrame extends JFrame {
         CellConstraints cc = new CellConstraints();
 
         //======== this ========
-        setTitle("Yale Tasks Application v 2.04");
+        setTitle("Yale Tasks Application v 2.1");
         Container contentPane = getContentPane();
         contentPane.setLayout(new BorderLayout());
 
@@ -355,6 +363,15 @@ public class YalePluginTasksFrame extends JFrame {
                     }
                 });
                 contentPanel.add(indexButton, cc.xy(5, 3));
+
+                //---- avReportButton ----
+                avReportButton.setText("A/V Report");
+                avReportButton.addActionListener(new ActionListener() {
+                    public void actionPerformed(ActionEvent e) {
+                        avReportButtonActionPerformed();
+                    }
+                });
+                contentPanel.add(avReportButton, cc.xy(1, 5));
             }
             dialogPane.add(contentPanel, BorderLayout.CENTER);
 
@@ -415,6 +432,7 @@ public class YalePluginTasksFrame extends JFrame {
     private JButton voyagerExportButton;
     private JButton boxSearchButton;
     private JButton indexButton;
+    private JButton avReportButton;
     private JPanel buttonBar;
     private JButton showConfigDialogButton;
     private JButton showDBDialogButton;
