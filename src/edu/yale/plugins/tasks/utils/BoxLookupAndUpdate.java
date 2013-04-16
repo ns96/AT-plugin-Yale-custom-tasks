@@ -49,6 +49,8 @@ public class BoxLookupAndUpdate {
 
     private HashMap<Long, String> componentTitleLookup = new HashMap<Long, String>();
 
+    private HashMap<String, String> componentInfoLookup = null;
+
     private String logMessage = "";
 
     private DomainAccessObject locationDAO;
@@ -487,30 +489,18 @@ public class BoxLookupAndUpdate {
      *
      * @param record
      * @param monitor
-     * @param useCache
      * @return
      */
-    public BoxLookupReturnRecordsCollection gatherContainersBySeriesForReport(Resources record, InfiniteProgressPanel monitor, boolean useCache) {
+    public BoxLookupReturnRecordsCollection gatherContainersBySeriesForReport(Resources record, InfiniteProgressPanel monitor) {
         Long resourceId = record.getIdentifier();
         Long resourceVersion = record.getVersion();
 
         // try loading the box lookup return record
         BoxLookupReturnRecordsCollection boxC = loadBoxLookupReturnRecordFromDatabase(resourceId);
 
-        // see if to just return the cache result
-        if (useCache && boxC != null) {
-            // now check to see if the version matches
-            if(resourceVersion.equals(boxC.getResourceVersion())) {
-                setVoyagerInformation(boxC);
-                return boxC;
-            } else {
-                System.out.println("Resource version different, regenerating box lookup collection");
-            }
-        }
-
         seriesInfo = new TreeMap<String, SeriesInfo>();
 
-        componentTitleLookup = new HashMap<Long, String>();
+        componentInfoLookup = new HashMap<String, String>();
 
         //Collection<BoxLookupReturnRecords> boxRecords = new ArrayList<BoxLookupReturnRecords>();
         HashMap<String, BoxLookupReturnRecords> boxRecords = new HashMap<String, BoxLookupReturnRecords>();
@@ -603,7 +593,7 @@ public class BoxLookupAndUpdate {
                             container1AlphaIndicator,
                             instances.getString("instanceType"));
                     componentId = instances.getLong("resourceComponentId");
-                    componentTitle = componentTitleLookup.get(componentId);
+                    componentTitle = componentInfoLookup.get(componentId + "_title");
 
                     if (!containers.containsKey(containerLabel)) {
                         containerCount++;
@@ -666,16 +656,6 @@ public class BoxLookupAndUpdate {
             // create the box collection record
             BoxLookupReturnRecordsCollection boxCollection = new BoxLookupReturnRecordsCollection(boxRecords.values(),
                     resourceId, resourceVersion, instanceCount);
-
-            // store a copy of this for future access on the database
-            if (useCache || alwaysSaveCache) {
-                boxCollection.setResourceVersion(resourceVersion);
-                PluginDataUtils.saveBoxLookReturnRecord(boxCollection);
-            }
-
-            // set the voyager information for the containers now since we don't need this information to
-            // to be saved
-            setVoyagerInformation(boxCollection);
 
             System.out.println("Total Instances: " + instanceCount);
             System.out.println("Total Time: " + MyTimer.toString(timer.elapsedTimeMillis()));
@@ -864,6 +844,16 @@ public class BoxLookupAndUpdate {
                         components.getString("title"),
                         components.getBoolean("hasChild")));
                 componentTitleLookup.put(components.getLong("resourceComponentId"), components.getString("title"));
+
+                // TODO If we are generating an A/V report we will need more information
+                // about the component so get it now
+                if(componentInfoLookup != null) {
+                    Long id = components.getLong("resourceComponentId");
+                    componentInfoLookup.put(id + "_title", components.getString("title"));
+
+                }
+
+
             }
 
             if (componentList.size() > 0) {

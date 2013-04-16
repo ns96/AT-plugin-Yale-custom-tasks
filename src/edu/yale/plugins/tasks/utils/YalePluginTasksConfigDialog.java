@@ -183,8 +183,11 @@ public class YalePluginTasksConfigDialog extends JDialog {
         yalePluginTasks.verifyContainerBarcodes(this, getUseCacheRecords(), true);
     }
 
+    /**
+     * Method to generate an Report which list the A/V items in the collections
+     */
     private void avButtonActionPerformed() {
-        // TODO add your code here
+        yalePluginTasks.generateAVReport(this, true);
     }
 
     private void initComponents() {

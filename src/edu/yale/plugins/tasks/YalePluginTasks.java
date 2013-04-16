@@ -693,7 +693,7 @@ public class YalePluginTasks extends Plugin implements ATPlugin {
     }
 
     /**
-     * Method generate a report list A/V holdings in the database
+     * Method generate a report listing A/V holdings in the database
      */
     public void generateAVReport(final Window parent, final boolean gui) {
         final ResourcesDAO access = new ResourcesDAO();
