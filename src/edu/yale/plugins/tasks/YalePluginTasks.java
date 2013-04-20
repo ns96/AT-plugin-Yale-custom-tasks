@@ -725,7 +725,15 @@ public class YalePluginTasks extends Plugin implements ATPlugin {
                     final String DELIMITER = "\t";
 
                     try {
+                        // create the writer object and add the header
                         PrintWriter writer = new PrintWriter(outputFile);
+                        writer.println("Collection ID" + DELIMITER +
+                                "ACCN/Series" + DELIMITER +
+                                "Title" + DELIMITER +
+                                "Location" + DELIMITER +
+                                "Box" + DELIMITER +
+                                "Container Type" + DELIMITER +
+                                "Barcode" + DELIMITER);
 
                         ArrayList records = (ArrayList) access.findAll();
 
@@ -745,13 +753,17 @@ public class YalePluginTasks extends Plugin implements ATPlugin {
 
                             // index the boxes
                             boxLookupAndUpdate = new BoxLookupAndUpdate();
-                            BoxLookupReturnRecordsCollection boxCollection = boxLookupAndUpdate.gatherContainersBySeriesForReport(resource, monitor, true);
+                            BoxLookupReturnRecordsCollection boxCollection = boxLookupAndUpdate.gatherContainersBySeriesForReport(resource, monitor);
 
                             // write out the results found so far to the file
                             for (BoxLookupReturnRecords boxRecord : boxCollection.getContainers()) {
-                                writer.println(resource.getResourceIdentifier2() + DELIMITER +
-                                        boxRecord.getBoxLabel() + DELIMITER + boxRecord.getBarcode());
-
+                                writer.println(boxRecord.getCollectionId() + DELIMITER +
+                                        boxRecord.getUniqueId() + DELIMITER +
+                                        boxRecord.getTitle() + DELIMITER +
+                                        boxRecord.getLocation() + DELIMITER +
+                                        boxRecord.getBoxLabel() + DELIMITER +
+                                        boxRecord.getContainerType() + DELIMITER +
+                                        boxRecord.getBarcode());
                             }
 
                             // close the long session, otherwise memory would quickly run out

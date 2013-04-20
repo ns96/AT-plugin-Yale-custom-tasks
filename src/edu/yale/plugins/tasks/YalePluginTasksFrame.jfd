@@ -45,14 +45,6 @@ new FormModel {
 						"gridX": 5
 						"gridY": 3
 					} )
-					add( new FormComponent( "javax.swing.JButton" ) {
-						name: "avReportButton"
-						"text": "A/V Report"
-						addEvent( new FormEvent( "java.awt.event.ActionListener", "actionPerformed", "avReportButtonActionPerformed", false ) )
-					}, new FormLayoutConstraints( class com.jgoodies.forms.layout.CellConstraints ) {
-						"gridX": 1
-						"gridY": 5
-					} )
 				}, new FormLayoutConstraints( class java.lang.String ) {
 					"value": "Center"
 				} )

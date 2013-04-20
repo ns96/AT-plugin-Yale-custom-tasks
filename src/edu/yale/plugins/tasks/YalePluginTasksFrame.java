@@ -293,7 +293,6 @@ public class YalePluginTasksFrame extends JFrame {
         voyagerExportButton = new JButton();
         boxSearchButton = new JButton();
         indexButton = new JButton();
-        avReportButton = new JButton();
         buttonBar = new JPanel();
         showConfigDialogButton = new JButton();
         showDBDialogButton = new JButton();
@@ -363,15 +362,6 @@ public class YalePluginTasksFrame extends JFrame {
                     }
                 });
                 contentPanel.add(indexButton, cc.xy(5, 3));
-
-                //---- avReportButton ----
-                avReportButton.setText("A/V Report");
-                avReportButton.addActionListener(new ActionListener() {
-                    public void actionPerformed(ActionEvent e) {
-                        avReportButtonActionPerformed();
-                    }
-                });
-                contentPanel.add(avReportButton, cc.xy(1, 5));
             }
             dialogPane.add(contentPanel, BorderLayout.CENTER);
 
@@ -432,7 +422,6 @@ public class YalePluginTasksFrame extends JFrame {
     private JButton voyagerExportButton;
     private JButton boxSearchButton;
     private JButton indexButton;
-    private JButton avReportButton;
     private JPanel buttonBar;
     private JButton showConfigDialogButton;
     private JButton showDBDialogButton;
