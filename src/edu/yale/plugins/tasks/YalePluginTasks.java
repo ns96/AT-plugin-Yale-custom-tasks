@@ -730,10 +730,13 @@ public class YalePluginTasks extends Plugin implements ATPlugin {
                         writer.println("Collection ID" + DELIMITER +
                                 "ACCN/Series" + DELIMITER +
                                 "Title" + DELIMITER +
+                                "Extent Type" + DELIMITER +
+                                "Extent Number" + DELIMITER +
+                                "Date Expression" + DELIMITER +
                                 "Location" + DELIMITER +
                                 "Box" + DELIMITER +
                                 "Container Type" + DELIMITER +
-                                "Barcode" + DELIMITER);
+                                "Barcode");
 
                         ArrayList records = (ArrayList) access.findAll();
 
@@ -753,22 +756,12 @@ public class YalePluginTasks extends Plugin implements ATPlugin {
 
                             // index the boxes
                             boxLookupAndUpdate = new BoxLookupAndUpdate();
-                            BoxLookupReturnRecordsCollection boxCollection = boxLookupAndUpdate.gatherContainersBySeriesForReport(resource, monitor);
-
-                            // write out the results found so far to the file
-                            for (BoxLookupReturnRecords boxRecord : boxCollection.getContainers()) {
-                                writer.println(boxRecord.getCollectionId() + DELIMITER +
-                                        boxRecord.getUniqueId() + DELIMITER +
-                                        boxRecord.getTitle() + DELIMITER +
-                                        boxRecord.getLocation() + DELIMITER +
-                                        boxRecord.getBoxLabel() + DELIMITER +
-                                        boxRecord.getContainerType() + DELIMITER +
-                                        boxRecord.getBarcode());
-                            }
+                            boxLookupAndUpdate.gatherContainersBySeriesForReport(resource, writer, DELIMITER, monitor);
 
                             // close the long session, otherwise memory would quickly run out
                             access.closeLongSession();
                             access.getLongSession();
+                            boxLookupAndUpdate.closeConnection();
 
                             i++;
                         }

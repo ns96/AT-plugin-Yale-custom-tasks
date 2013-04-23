@@ -31,6 +31,7 @@ import org.archiviststoolkit.util.MyTimer;
 import org.archiviststoolkit.util.StringHelper;
 import org.archiviststoolkit.hibernate.SessionFactory;
 
+import java.io.PrintWriter;
 import java.sql.*;
 import java.util.*;
 import java.text.NumberFormat;
@@ -100,6 +101,8 @@ public class BoxLookupAndUpdate {
                 "\tResourcesComponents.title, \n" +
                 "\tResourcesComponents.hasChild, \n" +
                 "\tResourcesComponents.extentType, \n" +
+                "\tResourcesComponents.extentNumber, \n" +
+                "\tResourcesComponents.dateExpression, \n" +
                 "\tResourcesComponents.subdivisionIdentifier\n" +
                 "FROM ResourcesComponents\n" +
                 "WHERE ResourcesComponents.resourceId = ?";
@@ -109,6 +112,8 @@ public class BoxLookupAndUpdate {
                 "\tResourcesComponents.resourceLevel, \n" +
                 "\tResourcesComponents.title, \n" +
                 "\tResourcesComponents.extentType, \n" +
+                "\tResourcesComponents.extentNumber, \n" +
+                "\tResourcesComponents.dateExpression, \n" +
                 "\tResourcesComponents.hasChild\n" +
                 "FROM ResourcesComponents\n" +
                 "WHERE ResourcesComponents.parentResourceComponentId = ?";
@@ -493,9 +498,11 @@ public class BoxLookupAndUpdate {
      * @param monitor
      * @return
      */
-    public BoxLookupReturnRecordsCollection gatherContainersBySeriesForReport(Resources record, InfiniteProgressPanel monitor) {
+    public void gatherContainersBySeriesForReport(Resources record, PrintWriter writer, String DELIMITER, InfiniteProgressPanel monitor) {
         Long resourceId = record.getIdentifier();
-        Long resourceVersion = record.getVersion();
+
+        String collectionId = createPaddedResourceIdentifier(record.getResourceIdentifier1() + ".",
+                record.getResourceIdentifier2());
 
         seriesInfo = new TreeMap<String, SeriesInfo>();
 
@@ -559,7 +566,6 @@ public class BoxLookupAndUpdate {
             if(monitor != null) monitor.setTextLine(message, 3);
 
             int instanceCount = 0;
-            int containerCount = 0;
 
             for (SeriesInfo series : seriesInfo.values()) {
                 sqlString = "SELECT * " +
@@ -577,12 +583,7 @@ public class BoxLookupAndUpdate {
                 System.out.println(message);
                 if(monitor != null)monitor.setTextLine(message, 4);
 
-                containers = new TreeMap<String, ContainerInfo>();
-                BoxLookupReturnRecords boxLookupReturnRecord = null;
-
                 while (instances.next()) {
-                    instanceCount++;
-
                     Long instanceId = instances.getLong("archDescriptionInstancesId");
                     container1NumIndicator = instances.getDouble("container1NumericIndicator");
                     container1AlphaIndicator = instances.getString("container1AlphaNumIndicator");
@@ -591,82 +592,46 @@ public class BoxLookupAndUpdate {
                             container1NumIndicator,
                             container1AlphaIndicator,
                             instances.getString("instanceType"));
+
                     componentId = instances.getLong("resourceComponentId");
+
                     componentTitle = componentInfoLookup.get(componentId + "_title");
+                    String extentType = componentInfoLookup.get(componentId + "_extentType");
+                    String extentNumber = componentInfoLookup.get(componentId + "_extentNumber");
+                    String dateExpression = componentInfoLookup.get(componentId + "_dateExpression");
 
                     if (addToAVReport(instances, componentId)) {
-                        if (!containers.containsKey(containerLabel)) {
-                            containerCount++;
-
-                            // create the container object
-                            ContainerInfo containerInfo = new ContainerInfo(containerLabel,
-                                    instances.getString("barcode"),
-                                    instances.getBoolean("userDefinedBoolean1"),
-                                    getLocationString(instances.getLong("locationId")),
-                                    componentTitle,
-                                    instances.getString("userDefinedString2"));
-
-                            containers.put(containerLabel, containerInfo);
-
-                            // if the series and component title are the same then we don't have a series level
-                            // component record
-                            String seriesTitle = series.getUniqueId();
-                            if (seriesTitle.equals(containerInfo.getComponentTitle())) {
-                                seriesTitle = "";
-                            }
-
-                            // create and store the BoxLookupReturn Record
-                            boxLookupReturnRecord = new BoxLookupReturnRecords(record.getResourceIdentifier(),
-                                    seriesTitle,
-                                    containerInfo.getComponentTitle(),
-                                    containerInfo.getLocation(),
-                                    containerInfo.getBarcode(),
-                                    containerInfo.isRestriction(),
-                                    containerInfo.getLabel(),
-                                    containerInfo.getContainerType());
-
-                            boxLookupReturnRecord.addInstanceId(instanceId);
-                            boxRecords.put(series.getUniqueId() + "_" + containerLabel, boxLookupReturnRecord);
-
-                            logMessage = "Accession Number: " + series.getUniqueId() +
-                                    " Series Title: " + series.getSeriesTitle() +
-                                    " Container: " + containerInfo.getLabel() +
-                                    " Barcode: " + containerInfo.getBarcode() +
-                                    " Restrictions: " + containerInfo.isRestriction();
-
-                            message = "Processing Container # " + containerCount + " -- " + logMessage;
-                            System.out.println(message);
-                            if (monitor != null) monitor.setTextLine(message, 5);
-                        } else {
-                            // add the instance
-                            if (boxRecords.containsKey(series.getUniqueId() + "_" + containerLabel)) {
-                                boxRecords.get(series.getUniqueId() + "_" + containerLabel).addInstanceId(instanceId);
-                            } else {
-                                // we should never reach here
-                                System.out.println("No container to plance instance");
-                            }
-
-                            message = "Adding Instance -- " + containerLabel;
-                            System.out.println(message);
-                            if (monitor != null) monitor.setTextLine(message, 5);
+                        // if the series and component title are the same then we don't have a series level
+                        // component record
+                        String seriesTitle = series.getUniqueId();
+                        if (seriesTitle.equals(componentTitle)) {
+                            seriesTitle = "";
                         }
+
+                        writer.println(collectionId + DELIMITER +
+                                seriesTitle + DELIMITER +
+                                componentTitle + DELIMITER +
+                                extentType + DELIMITER +
+                                extentNumber + DELIMITER +
+                                dateExpression + DELIMITER +
+                                getLocationString(instances.getLong("locationId")) + DELIMITER +
+                                containerLabel + DELIMITER +
+                                instances.getString("userDefinedString2") + DELIMITER +
+                                instances.getString("barcode"));
+
+                        instanceCount++;
+                        message = "Processing Instance # " + instanceCount;
+                        System.out.println(message);
+                        if (monitor != null) monitor.setTextLine(message, 5);
                     }
                 }
             }
 
-            // create the box collection record
-            BoxLookupReturnRecordsCollection boxCollection = new BoxLookupReturnRecordsCollection(boxRecords.values(),
-                    resourceId, resourceVersion, instanceCount);
-
             System.out.println("Total Instances: " + instanceCount);
             System.out.println("Total Time: " + MyTimer.toString(timer.elapsedTimeMillis()));
-
-            return boxCollection;
         } catch (Exception e) {
             new ErrorDialog("", e).showDialog();
-        }
-
-        return null;
+        };
     }
 
     /**
@@ -697,13 +662,14 @@ public class BoxLookupAndUpdate {
         }
 
         // if we get here then check that the resource component doesn't indicate it's an audio/video item
+        String recordName = "$%^&*&^%$#$%^&*";
         String title = componentInfoLookup.get(componentId + "_title");
         if(title != null && !title.isEmpty()) {
             title = title.toLowerCase();
 
             // removed records from search term becuase this results in a lot of false hits
             if(title.contains("audio") || title.contains("video") ||
-                    title.contains("film")) {
+                    title.contains("film") || title.contains(recordName)) {
                 return true;
             }
         }
@@ -902,10 +868,9 @@ public class BoxLookupAndUpdate {
                     Long id = components.getLong("resourceComponentId");
                     componentInfoLookup.put(id + "_title", components.getString("title"));
                     componentInfoLookup.put(id + "_extentType", components.getString("extentType"));
-
+                    componentInfoLookup.put(id + "_extentNumber", components.getString("extentNumber"));
+                    componentInfoLookup.put(id + "_dateExpression", components.getString("dateExpression"));
                 }
-
-
             }
 
             if (componentList.size() > 0) {
