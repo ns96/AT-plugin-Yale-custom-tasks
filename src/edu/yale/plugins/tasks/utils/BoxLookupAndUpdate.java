@@ -538,7 +538,9 @@ public class BoxLookupAndUpdate {
 
                 hashKey = uniqueId;
                 if (!seriesInfo.containsKey(hashKey)) {
-                    seriesInfo.put(hashKey, new SeriesInfo(uniqueId, components.getString("title")));
+                    SeriesInfo si = new SeriesInfo(uniqueId, components.getString("title"));
+                    si.addComponentId(components.getLong("resourceComponentId"));
+                    seriesInfo.put(hashKey, si);
 
                     message = "Gathering Series Info: " + components.getString("title");
                     System.out.println(message);
@@ -550,9 +552,12 @@ public class BoxLookupAndUpdate {
                         components.getBoolean("hasChild"),
                         componentLookupByComponent,
                         components.getString("title"));
+
             }
 
             ResultSet instances;
+            ResultSet notes;
+
             TreeMap<String, ContainerInfo> containers;
             String containerLabel;
             Long componentId;
@@ -568,6 +573,7 @@ public class BoxLookupAndUpdate {
             int instanceCount = 0;
 
             for (SeriesInfo series : seriesInfo.values()) {
+                // get all the instances
                 sqlString = "SELECT * " +
                         "FROM ArchDescriptionInstances\n" +
                         "WHERE resourceComponentId in (" + series.getComponentIds() + ") \n" +
@@ -577,6 +583,16 @@ public class BoxLookupAndUpdate {
 
                 Statement sqlStatement = con.createStatement();
                 instances = sqlStatement.executeQuery(sqlString);
+
+                // get all the note content
+                sqlString = "SELECT noteContent, resourceComponentId FROM `ArchDescriptionRepeatingData` \n" +
+                        "WHERE resourceComponentId in (" + series.getComponentIds() + ") \n" +
+                        "AND notesEtcTypeId='16'" ;
+
+                Statement sqlStatement2 = con.createStatement();
+                notes = sqlStatement2.executeQuery(sqlString);
+
+                addNoteContentToComponentInfo(notes);
 
                 // for all the instances found find the containers
                 message = "Processing Instances for Series " + series.seriesTitle;
@@ -599,6 +615,7 @@ public class BoxLookupAndUpdate {
                     String extentType = componentInfoLookup.get(componentId + "_extentType");
                     String extentNumber = componentInfoLookup.get(componentId + "_extentNumber");
                     String dateExpression = componentInfoLookup.get(componentId + "_dateExpression");
+                    String noteContent = componentInfoLookup.get(componentId + "_noteContent");
 
                     if (addToAVReport(instances, componentId)) {
                         // if the series and component title are the same then we don't have a series level
@@ -614,6 +631,7 @@ public class BoxLookupAndUpdate {
                                 extentType + DELIMITER +
                                 extentNumber + DELIMITER +
                                 dateExpression + DELIMITER +
+                                noteContent + DELIMITER +
                                 getLocationString(instances.getLong("locationId")) + DELIMITER +
                                 containerLabel + DELIMITER +
                                 instances.getString("userDefinedString2") + DELIMITER +
@@ -632,6 +650,19 @@ public class BoxLookupAndUpdate {
         } catch (Exception e) {
             new ErrorDialog("", e).showDialog();
         };
+    }
+
+    /**
+     * Add the noteContent to the conponent Info hash map
+     * @param notes
+     * @throws SQLException
+     */
+    private void addNoteContentToComponentInfo(ResultSet notes) throws SQLException {
+        while(notes.next()) {
+            Long id = notes.getLong("resourceComponentId");
+            String noteContent = notes.getString("noteContent");
+            componentInfoLookup.put(id + "_noteContent", noteContent);
+        }
     }
 
     /**
@@ -669,7 +700,18 @@ public class BoxLookupAndUpdate {
 
             // removed records from search term becuase this results in a lot of false hits
             if(title.contains("audio") || title.contains("video") ||
-                    title.contains("film") || title.contains(recordName)) {
+                    title.contains("film") || title.contains("recordings") ||
+                    title.contains("recorded")) {
+                return true;
+            }
+        }
+
+        String noteContent = componentInfoLookup.get(componentId + "_noteContent");
+        if(noteContent != null && !noteContent.isEmpty()) {
+            noteContent = noteContent.toLowerCase();
+            if(noteContent.contains("audio") || noteContent.contains("video") ||
+                    noteContent.contains("dvd") || noteContent.contains("cd") ||
+                    noteContent.contains("reel-to-reel") ||  noteContent.contains("film")) {
                 return true;
             }
         }
@@ -905,9 +947,11 @@ public class BoxLookupAndUpdate {
             if (type != null && type.length() > 0 && (hasNumbericIndicator || alphaIndicator.length() > 0)) {
                 try {
                     if (hasNumbericIndicator) {
-                        return type + " " + NumberFormat.getInstance().format(numericIndicator);
+                        //return type + " " + NumberFormat.getInstance().format(numericIndicator);
+                        return createPaddedResourceIdentifier(type + " ", NumberFormat.getInstance().format(numericIndicator));
                     } else {
-                        return type + " " + alphaIndicator;
+                        //return type + " " + alphaIndicator;
+                        return createPaddedResourceIdentifier(type + " ", alphaIndicator);
                     }
                 } catch (Exception e) {
                     new ErrorDialog("Error creating container label", e).showDialog();

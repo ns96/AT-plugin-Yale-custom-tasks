@@ -733,6 +733,7 @@ public class YalePluginTasks extends Plugin implements ATPlugin {
                                 "Extent Type" + DELIMITER +
                                 "Extent Number" + DELIMITER +
                                 "Date Expression" + DELIMITER +
+                                "Note Content" + DELIMITER +
                                 "Location" + DELIMITER +
                                 "Box" + DELIMITER +
                                 "Container Type" + DELIMITER +
