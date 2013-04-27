@@ -742,6 +742,7 @@ public class YalePluginTasks extends Plugin implements ATPlugin {
                         ArrayList records = (ArrayList) access.findAll();
 
                         int totalRecords = records.size();
+                        int totalInstances = 0;
                         int i = 1;
                         for (Object object : records) {
                             if (monitor != null && monitor.isProcessCancelled()) {
@@ -757,7 +758,7 @@ public class YalePluginTasks extends Plugin implements ATPlugin {
 
                             // index the boxes
                             boxLookupAndUpdate = new BoxLookupAndUpdate();
-                            boxLookupAndUpdate.gatherContainersBySeriesForReport(resource, writer, DELIMITER, monitor);
+                            totalInstances += boxLookupAndUpdate.gatherContainersBySeriesForReport(resource, writer, DELIMITER, monitor);
 
                             // close the long session, otherwise memory would quickly run out
                             access.closeLongSession();
@@ -770,7 +771,8 @@ public class YalePluginTasks extends Plugin implements ATPlugin {
                         // flush the writer to persist buffer to disk
                         writer.flush();
 
-                        String message = "Total time for report generation " + i + " records: " + MyTimer.toString(timer.elapsedTimeMillis());
+                        String message = "Total time for report generation " + i + " records: " + MyTimer.toString(timer.elapsedTimeMillis()) +
+                        "\nAnalog Instances Searched: " + totalInstances;
 
                         if (gui) {
                             monitor.close();

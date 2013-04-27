@@ -192,7 +192,9 @@ public class BoxLookupAndUpdate {
 
                     hashKey = uniqueId + seriesTitle;
                     if (!seriesInfo.containsKey(hashKey)) {
-                        seriesInfo.put(hashKey, new SeriesInfo(uniqueId, seriesTitle));
+                        SeriesInfo si = new SeriesInfo(uniqueId, seriesTitle);
+                        si.addComponentId(components.getLong("resourceComponentId"));
+                        seriesInfo.put(hashKey, si);
                     }
 
                     if (targetUniqueId.equals("") || uniqueId.equalsIgnoreCase(targetUniqueId)) {
@@ -345,7 +347,9 @@ public class BoxLookupAndUpdate {
 
                 hashKey = uniqueId;
                 if (!seriesInfo.containsKey(hashKey)) {
-                    seriesInfo.put(hashKey, new SeriesInfo(uniqueId, components.getString("title")));
+                    SeriesInfo si = new SeriesInfo(uniqueId, components.getString("title"));
+                    si.addComponentId(components.getLong("resourceComponentId"));
+                    seriesInfo.put(hashKey, si);
 
                     message = "Gathering Series Info: " + components.getString("title");
                     System.out.println(message);
@@ -498,7 +502,7 @@ public class BoxLookupAndUpdate {
      * @param monitor
      * @return
      */
-    public void gatherContainersBySeriesForReport(Resources record, PrintWriter writer, String DELIMITER, InfiniteProgressPanel monitor) {
+    public int gatherContainersBySeriesForReport(Resources record, PrintWriter writer, String DELIMITER, InfiniteProgressPanel monitor) {
         Long resourceId = record.getIdentifier();
 
         String collectionId = createPaddedResourceIdentifier(record.getResourceIdentifier1() + ".",
@@ -508,8 +512,7 @@ public class BoxLookupAndUpdate {
 
         componentInfoLookup = new HashMap<String, String>();
 
-        //Collection<BoxLookupReturnRecords> boxRecords = new ArrayList<BoxLookupReturnRecords>();
-        HashMap<String, BoxLookupReturnRecords> boxRecords = new HashMap<String, BoxLookupReturnRecords>();
+        int instanceTotal = 0;
 
         try {
             // initialize the prepared statements
@@ -525,13 +528,86 @@ public class BoxLookupAndUpdate {
 
             String uniqueId;
             String hashKey;
+            int instanceCount = 0;
 
             MyTimer timer = new MyTimer();
             timer.reset();
 
+            // get all instances that are attached directly to the resource record
+            ResultSet resourceInstances;
+            ResultSet resourceNotes;
+
+            // get all the instances
+            sqlString = "SELECT * " +
+                    "FROM ArchDescriptionInstances\n" +
+                    "WHERE parentResourceId = '" + resourceId + "' \n" +
+                    "AND instanceDescriminator = 'analog'";
+
+            System.out.println(sqlString);
+
+            Statement sqlStatement = con.createStatement();
+            resourceInstances = sqlStatement.executeQuery(sqlString);
+
+            message = "Processing Instances attached to Parent Resource ";
+            System.out.println(message);
+            if(monitor != null)monitor.setTextLine(message, 4);
+
+            /*// get all the note content
+            sqlString = "SELECT noteContent, resourceComponentId FROM `ArchDescriptionRepeatingData` \n" +
+                    "WHERE resourceComponentId in (" + series.getComponentIds() + ") \n" +
+                    "AND notesEtcTypeId='16'" ;
+
+            Statement sqlStatement2 = con.createStatement();
+            notes = sqlStatement2.executeQuery(sqlString);
+
+            addNoteContentToComponentInfo(notes);*/
+
+
+            while (resourceInstances.next()) {
+                instanceTotal++;
+
+                Double container1NumIndicator = resourceInstances.getDouble("container1NumericIndicator");
+                String container1AlphaIndicator = resourceInstances.getString("container1AlphaNumIndicator");
+
+                String containerLabel = createContainerLabel(resourceInstances.getString("container1Type"),
+                        container1NumIndicator,
+                        container1AlphaIndicator,
+                        resourceInstances.getString("instanceType"));
+
+
+                String componentTitle = "Parent Resource";
+                String extentType = record.getExtentType();
+                String extentNumber = ""  + record.getExtentNumber();
+                String dateExpression = record.getDateExpression();
+                String noteContent = "none";
+
+                if (addToAVReport(resourceInstances, -1L)) {
+                    // if the series and component title are the same then we don't have a series level
+                    // component record
+                    String seriesTitle = "Parent Resource";
+
+                    writer.println(collectionId + DELIMITER +
+                            seriesTitle + DELIMITER +
+                            componentTitle + DELIMITER +
+                            extentType + DELIMITER +
+                            extentNumber + DELIMITER +
+                            dateExpression + DELIMITER +
+                            noteContent + DELIMITER +
+                            getLocationString(resourceInstances.getLong("locationId")) + DELIMITER +
+                            containerLabel + DELIMITER +
+                            resourceInstances.getString("userDefinedString2") + DELIMITER +
+                            resourceInstances.getString("barcode"));
+
+                    instanceCount++;
+                    message = "Resource Instances found " + instanceCount;
+                    System.out.println(message);
+                    if (monitor != null) monitor.setTextLine(message, 5);
+                }
+            }
+
+            // now process instance attached to the resource components
             componentLookupByResource.setLong(1, resourceId);
             ResultSet components = componentLookupByResource.executeQuery();
-
             while (components.next()) {
                 uniqueId = determineComponentUniqueIdentifier("", components.getString("subdivisionIdentifier"), components.getString("title"));
                 //uniqueId = "" + components.getLong("resourceComponentId");
@@ -558,7 +634,6 @@ public class BoxLookupAndUpdate {
             ResultSet instances;
             ResultSet notes;
 
-            TreeMap<String, ContainerInfo> containers;
             String containerLabel;
             Long componentId;
             String componentTitle;
@@ -570,18 +645,16 @@ public class BoxLookupAndUpdate {
             System.out.println(message);
             if(monitor != null) monitor.setTextLine(message, 3);
 
-            int instanceCount = 0;
-
             for (SeriesInfo series : seriesInfo.values()) {
                 // get all the instances
                 sqlString = "SELECT * " +
                         "FROM ArchDescriptionInstances\n" +
                         "WHERE resourceComponentId in (" + series.getComponentIds() + ") \n" +
-                        "AND instanceDescriminator = 'analog' GROUP BY userDefinedString2";
+                        "AND instanceDescriminator = 'analog'";
 
                 System.out.println(sqlString);
 
-                Statement sqlStatement = con.createStatement();
+                sqlStatement = con.createStatement();
                 instances = sqlStatement.executeQuery(sqlString);
 
                 // get all the note content
@@ -589,8 +662,8 @@ public class BoxLookupAndUpdate {
                         "WHERE resourceComponentId in (" + series.getComponentIds() + ") \n" +
                         "AND notesEtcTypeId='16'" ;
 
-                Statement sqlStatement2 = con.createStatement();
-                notes = sqlStatement2.executeQuery(sqlString);
+                sqlStatement = con.createStatement();
+                notes = sqlStatement.executeQuery(sqlString);
 
                 addNoteContentToComponentInfo(notes);
 
@@ -600,7 +673,8 @@ public class BoxLookupAndUpdate {
                 if(monitor != null)monitor.setTextLine(message, 4);
 
                 while (instances.next()) {
-                    Long instanceId = instances.getLong("archDescriptionInstancesId");
+                    instanceTotal++;
+
                     container1NumIndicator = instances.getDouble("container1NumericIndicator");
                     container1AlphaIndicator = instances.getString("container1AlphaNumIndicator");
 
@@ -638,7 +712,7 @@ public class BoxLookupAndUpdate {
                                 instances.getString("barcode"));
 
                         instanceCount++;
-                        message = "Processing Instance # " + instanceCount;
+                        message = "Instances found " + instanceCount;
                         System.out.println(message);
                         if (monitor != null) monitor.setTextLine(message, 5);
                     }
@@ -649,7 +723,9 @@ public class BoxLookupAndUpdate {
             System.out.println("Total Time: " + MyTimer.toString(timer.elapsedTimeMillis()));
         } catch (Exception e) {
             new ErrorDialog("", e).showDialog();
-        };
+        }
+
+        return instanceTotal;
     }
 
     /**
@@ -675,20 +751,25 @@ public class BoxLookupAndUpdate {
      */
     private boolean addToAVReport(ResultSet instances, Long componentId) throws Exception {
         // first check the instance
-        String avType = instances.getString("userDefinedString2");
+        ArrayList<String> avTypes = new ArrayList<String>();
+        avTypes.add(instances.getString("userDefinedString2"));
+        avTypes.add(instances.getString("instanceType"));
+        avTypes.add(instances.getString("container1Type"));
 
-        if (avType != null && !avType.isEmpty()) {
-            avType = avType.toLowerCase();
+        for(String avType: avTypes) {
+            if (avType != null && !avType.isEmpty()) {
+                avType = avType.toLowerCase();
 
-            if (!avType.contains("microfilm") && (
-                    avType.contains("film") ||
-                            avType.contains("vhs") ||
-                            avType.contains("cassette") ||
-                            avType.contains("video") ||
-                            avType.contains("audio") ||
-                            avType.contains("reel") ||
-                            avType.contains("record"))) {
-                return true;
+                if (!avType.contains("microfilm") && (
+                        avType.contains("film") ||
+                                avType.contains("vhs") ||
+                                avType.contains("cassette") ||
+                                avType.contains("video") ||
+                                avType.contains("audio") ||
+                                avType.contains("reel") ||
+                                avType.contains("record"))) {
+                    return true;
+                }
             }
         }
 

@@ -300,7 +300,7 @@ public class YalePluginTasksFrame extends JFrame {
         CellConstraints cc = new CellConstraints();
 
         //======== this ========
-        setTitle("Yale Tasks Application v 2.1");
+        setTitle("Yale Tasks Application v 2.2");
         Container contentPane = getContentPane();
         contentPane.setLayout(new BorderLayout());
 
