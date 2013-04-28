@@ -119,7 +119,6 @@ public class BoxLookupAndUpdate {
                 "WHERE ResourcesComponents.parentResourceComponentId = ?";
         componentLookupByComponent = con.prepareStatement(sqlString);
 
-
         sqlString = "SELECT *" +
                 "FROM ArchDescriptionInstances\n" +
                 "WHERE resourceComponentId IN (?)";
@@ -460,7 +459,7 @@ public class BoxLookupAndUpdate {
                             boxRecords.get(series.getUniqueId()+ "_" + containerLabel).addInstanceId(instanceId);
                         } else {
                             // we should never reach here
-                            System.out.println("No container to plance instance");
+                            System.out.println("No container to place instance");
                         }
 
                         message = "Adding Instance -- " + containerLabel;
@@ -646,6 +645,10 @@ public class BoxLookupAndUpdate {
             if(monitor != null) monitor.setTextLine(message, 3);
 
             for (SeriesInfo series : seriesInfo.values()) {
+                if(series.getSeriesTitle().toLowerCase().contains("microfilm")) {
+                    continue;
+                }
+
                 // get all the instances
                 sqlString = "SELECT * " +
                         "FROM ArchDescriptionInstances\n" +
@@ -737,7 +740,11 @@ public class BoxLookupAndUpdate {
         while(notes.next()) {
             Long id = notes.getLong("resourceComponentId");
             String noteContent = notes.getString("noteContent");
-            componentInfoLookup.put(id + "_noteContent", noteContent);
+
+            if(noteContent != null) {
+                noteContent = noteContent.replace("\n", " ");
+                componentInfoLookup.put(id + "_noteContent", noteContent);
+            }
         }
     }
 
@@ -766,7 +773,6 @@ public class BoxLookupAndUpdate {
                                 avType.contains("cassette") ||
                                 avType.contains("video") ||
                                 avType.contains("audio") ||
-                                avType.contains("reel") ||
                                 avType.contains("record"))) {
                     return true;
                 }
@@ -774,15 +780,14 @@ public class BoxLookupAndUpdate {
         }
 
         // if we get here then check that the resource component doesn't indicate it's an audio/video item
-        String recordName = "$%^&*&^%$#$%^&*";
         String title = componentInfoLookup.get(componentId + "_title");
         if(title != null && !title.isEmpty()) {
             title = title.toLowerCase();
 
-            // removed records from search term becuase this results in a lot of false hits
-            if(title.contains("audio") || title.contains("video") ||
+            // removed records from search term because this results in a lot of false hits
+            if(!title.contains("microfilm") && (title.contains("audio") || title.contains("video") ||
                     title.contains("film") || title.contains("recordings") ||
-                    title.contains("recorded")) {
+                    title.contains("recorded"))) {
                 return true;
             }
         }
@@ -988,8 +993,12 @@ public class BoxLookupAndUpdate {
                 // If we are generating an A/V report we will need more information
                 // about the component so get it now
                 if(componentInfoLookup != null) {
+                    // clean up the title
+                    String orgTitle =  StringHelper.tagRemover(components.getString("title"));
+                    String newTitle = orgTitle.replace("\n", " ");
+
                     Long id = components.getLong("resourceComponentId");
-                    componentInfoLookup.put(id + "_title", components.getString("title"));
+                    componentInfoLookup.put(id + "_title", newTitle);
                     componentInfoLookup.put(id + "_extentType", components.getString("extentType"));
                     componentInfoLookup.put(id + "_extentNumber", components.getString("extentNumber"));
                     componentInfoLookup.put(id + "_dateExpression", components.getString("dateExpression"));
