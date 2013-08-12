@@ -20,27 +20,12 @@
 
 package edu.yale.plugins.tasks.utils;
 
-import edu.yale.plugins.tasks.model.BoxLookupReturnRecords;
-import edu.yale.plugins.tasks.model.BoxLookupReturnRecordsCollection;
-import edu.yale.plugins.tasks.search.BoxLookupReturnScreen;
-import org.archiviststoolkit.dialog.ErrorDialog;
 import org.archiviststoolkit.hibernate.SessionFactory;
-import org.archiviststoolkit.model.ArchDescriptionAnalogInstances;
-import org.archiviststoolkit.model.Locations;
-import org.archiviststoolkit.model.Resources;
-import org.archiviststoolkit.model.ResourcesComponents;
-import org.archiviststoolkit.mydomain.*;
-import org.archiviststoolkit.swing.InfiniteProgressPanel;
-import org.archiviststoolkit.util.MyTimer;
+import org.archiviststoolkit.mydomain.DomainAccessObject;
 import org.archiviststoolkit.util.StringHelper;
 
-import java.io.PrintWriter;
 import java.sql.*;
-import java.text.NumberFormat;
-import java.util.ArrayList;
-import java.util.Collection;
 import java.util.HashMap;
-import java.util.TreeMap;
 
 public class ExtentUpdate {
     private HashMap<Long, String> componentTitleLookup = new HashMap<Long, String>();
@@ -129,5 +114,4 @@ public class ExtentUpdate {
             }
         }
     }
-
 }

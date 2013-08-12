@@ -83,6 +83,7 @@ new FormModel {
 					add( new FormComponent( "javax.swing.JButton" ) {
 						name: "correctExtentButton"
 						"text": "Correct Extent Data"
+						"visible": false
 						addEvent( new FormEvent( "java.awt.event.ActionListener", "actionPerformed", "correctExtentButtonActionPerformed", false ) )
 					}, new FormLayoutConstraints( class com.jgoodies.forms.layout.CellConstraints ) {
 						"gridX": 1

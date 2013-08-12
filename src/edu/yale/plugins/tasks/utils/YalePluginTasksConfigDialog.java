@@ -325,6 +325,7 @@ public class YalePluginTasksConfigDialog extends JDialog {
 
                 //---- correctExtentButton ----
                 correctExtentButton.setText("Correct Extent Data");
+                correctExtentButton.setVisible(false);
                 correctExtentButton.addActionListener(new ActionListener() {
                     public void actionPerformed(ActionEvent e) {
                         correctExtentButtonActionPerformed();

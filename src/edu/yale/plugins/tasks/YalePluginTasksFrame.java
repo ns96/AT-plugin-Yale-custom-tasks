@@ -278,10 +278,11 @@ public class YalePluginTasksFrame extends JFrame {
     }
 
     /**
-     * Method to generate a report which list the A/V material in the repository
+     * Method to display the frame that allows linking of location barcodes
+     * to container barcodes
      */
-    private void avReportButtonActionPerformed() {
-
+    private void barcodeLinkerButtonActionPerformed() {
+        yalePluginTasks.showBarcodeLinkerFrame();
     }
 
     private void initComponents() {
@@ -293,6 +294,7 @@ public class YalePluginTasksFrame extends JFrame {
         voyagerExportButton = new JButton();
         boxSearchButton = new JButton();
         indexButton = new JButton();
+        barcodeLinkerButton = new JButton();
         buttonBar = new JPanel();
         showConfigDialogButton = new JButton();
         showDBDialogButton = new JButton();
@@ -300,7 +302,7 @@ public class YalePluginTasksFrame extends JFrame {
         CellConstraints cc = new CellConstraints();
 
         //======== this ========
-        setTitle("Yale Tasks Application v 2.3");
+        setTitle("Yale Tasks Application v 2.4");
         Container contentPane = getContentPane();
         contentPane.setLayout(new BorderLayout());
 
@@ -320,6 +322,8 @@ public class YalePluginTasksFrame extends JFrame {
                         FormFactory.DEFAULT_COLSPEC
                     },
                     new RowSpec[] {
+                        FormFactory.DEFAULT_ROWSPEC,
+                        FormFactory.LINE_GAP_ROWSPEC,
                         FormFactory.DEFAULT_ROWSPEC,
                         FormFactory.LINE_GAP_ROWSPEC,
                         FormFactory.DEFAULT_ROWSPEC,
@@ -362,6 +366,15 @@ public class YalePluginTasksFrame extends JFrame {
                     }
                 });
                 contentPanel.add(indexButton, cc.xy(5, 3));
+
+                //---- barcodeLinkerButton ----
+                barcodeLinkerButton.setText("Barcode Linker");
+                barcodeLinkerButton.addActionListener(new ActionListener() {
+                    public void actionPerformed(ActionEvent e) {
+                        barcodeLinkerButtonActionPerformed();
+                    }
+                });
+                contentPanel.add(barcodeLinkerButton, cc.xy(1, 5));
             }
             dialogPane.add(contentPanel, BorderLayout.CENTER);
 
@@ -422,6 +435,7 @@ public class YalePluginTasksFrame extends JFrame {
     private JButton voyagerExportButton;
     private JButton boxSearchButton;
     private JButton indexButton;
+    private JButton barcodeLinkerButton;
     private JPanel buttonBar;
     private JButton showConfigDialogButton;
     private JButton showDBDialogButton;

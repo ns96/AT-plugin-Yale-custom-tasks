@@ -69,18 +69,11 @@ public class YalePluginTasks extends Plugin implements ATPlugin {
     public static final String PARTIAL_EAD_IMPORT = "Partial EAD Import";
     public static final String BOX_LOOKUP = "Box Lookup";
     public static final String SHOW_CONFIG = "Show Config Dialog";
+    public static final String BARCODE_LINKER = "Barcode Linker";
 
     public static final String PLUGIN_NAME = "Yale Tasks";
 
     protected ApplicationFrame mainFrame;
-    protected ArchDescriptionFields parentEditorFields;
-    private ResourcesCommon resourceOrComponent;
-
-    protected YaleAnalogInstancesFields editorFields;
-    private DomainEditor analogInstanceEditor;
-    private JTable callingTable;
-    private int selectedRow;
-    protected ArchDescriptionAnalogInstances analogInstance;
 
     // class finding and storing container information
     BoxLookupAndUpdate boxLookupAndUpdate = null;
@@ -413,6 +406,8 @@ public class YalePluginTasks extends Plugin implements ATPlugin {
             } catch (SQLException e) {
                 new ErrorDialog("", e).showDialog();
             }
+        } else if (task.equals(BARCODE_LINKER)) {
+            showBarcodeLinkerFrame();
         } else if (task.equals(SHOW_CONFIG)) {
             if(mainFrame.getCurrentUserAccessClass() == Users.ACCESS_CLASS_SUPERUSER) {
                 showConfigDialog(false);
@@ -431,7 +426,7 @@ public class YalePluginTasks extends Plugin implements ATPlugin {
     public String[] getTaskList() {
         String[] tasks = new String[]{APPLY_CONTAINER_INFORMATION_TASK,
                 EXPORT_VOYAGER_INFORMATION,
-                BOX_LOOKUP, SHOW_CONFIG};
+                BOX_LOOKUP, SHOW_CONFIG, BARCODE_LINKER};
 
         return tasks;
     }
@@ -837,8 +832,6 @@ public class YalePluginTasks extends Plugin implements ATPlugin {
             configDialog.pack();
             configDialog.setYalePluginTasks(this);
         }
-
-        // TODO load the config record from the database
     }
 
     /**
@@ -863,6 +856,15 @@ public class YalePluginTasks extends Plugin implements ATPlugin {
      */
     public YalePluginTasksConfigDialog getConfigDialog() {
         return configDialog;
+    }
+
+    /**
+     * Method to display the barcode linker frame
+     */
+    public void showBarcodeLinkerFrame() {
+        BarcodeLinkerFrame barcodeLinkerFrame = new BarcodeLinkerFrame();
+        barcodeLinkerFrame.pack();
+        barcodeLinkerFrame.setVisible(true);
     }
 
     /**
