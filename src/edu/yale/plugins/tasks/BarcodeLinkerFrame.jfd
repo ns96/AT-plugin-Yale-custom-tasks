@@ -40,7 +40,7 @@
            </void> 
            <void method="setProperty"> 
             <string>$rowSpecs</string> 
-            <string>default, linegap, top:default</string> 
+            <string>default, linegap, default, linegap, top:default, linegap, default</string> 
            </void> 
           </object> 
           <void property="name"> 
@@ -79,6 +79,33 @@
             <void property="name"> 
              <string>locationBarcodeTextField</string> 
             </void> 
+            <void method="addEvent"> 
+             <object class="com.jformdesigner.model.FormEvent"> 
+              <string>java.awt.event.ActionListener</string> 
+              <string>actionPerformed</string> 
+              <string>locationBarcodeTextFieldActionPerformed</string> 
+              <boolean>false</boolean> 
+             </object> 
+            </void> 
+           </object> 
+           <object class="com.jformdesigner.model.FormLayoutConstraints"> 
+            <class>com.jgoodies.forms.layout.CellConstraints</class> 
+            <void method="setProperty"> 
+             <string>gridX</string> 
+             <int>3</int> 
+            </void> 
+           </object> 
+          </void> 
+          <void method="add"> 
+           <object class="com.jformdesigner.model.FormComponent"> 
+            <string>javax.swing.JLabel</string> 
+            <void method="setProperty"> 
+             <string>text</string> 
+             <string>not found ...</string> 
+            </void> 
+            <void property="name"> 
+             <string>locationLabel</string> 
+            </void> 
            </object> 
            <object class="com.jformdesigner.model.FormLayoutConstraints"> 
             <class>com.jgoodies.forms.layout.CellConstraints</class> 
@@ -88,7 +115,7 @@
             </void> 
             <void method="setProperty"> 
              <string>gridY</string> 
-             <int>1</int> 
+             <int>3</int> 
             </void> 
            </object> 
           </void> 
@@ -111,7 +138,7 @@
             </void> 
             <void method="setProperty"> 
              <string>gridY</string> 
-             <int>3</int> 
+             <int>5</int> 
             </void> 
            </object> 
           </void> 
@@ -132,7 +159,7 @@
                <int>25</int> 
               </void> 
               <void property="name"> 
-               <string>textArea1</string> 
+               <string>barcodesTextArea</string> 
               </void> 
              </object> 
             </void> 
@@ -145,7 +172,57 @@
             </void> 
             <void method="setProperty"> 
              <string>gridY</string> 
+             <int>5</int> 
+            </void> 
+           </object> 
+          </void> 
+          <void method="add"> 
+           <object class="com.jformdesigner.model.FormComponent"> 
+            <string>javax.swing.JLabel</string> 
+            <void method="setProperty"> 
+             <string>text</string> 
+             <string>Find Instances</string> 
+            </void> 
+            <void property="name"> 
+             <string>instanceCountLabel</string> 
+            </void> 
+           </object> 
+           <object class="com.jformdesigner.model.FormLayoutConstraints"> 
+            <class>com.jgoodies.forms.layout.CellConstraints</class> 
+            <void method="setProperty"> 
+             <string>gridX</string> 
+             <int>1</int> 
+            </void> 
+            <void method="setProperty"> 
+             <string>gridY</string> 
+             <int>7</int> 
+            </void> 
+           </object> 
+          </void> 
+          <void method="add"> 
+           <object class="com.jformdesigner.model.FormComponent"> 
+            <string>javax.swing.JTextField</string> 
+            <void property="name"> 
+             <string>searchTextField</string> 
+            </void> 
+            <void method="addEvent"> 
+             <object class="com.jformdesigner.model.FormEvent"> 
+              <string>java.awt.event.ActionListener</string> 
+              <string>actionPerformed</string> 
+              <string>searchTextFieldActionPerformed</string> 
+              <boolean>false</boolean> 
+             </object> 
+            </void> 
+           </object> 
+           <object class="com.jformdesigner.model.FormLayoutConstraints"> 
+            <class>com.jgoodies.forms.layout.CellConstraints</class> 
+            <void method="setProperty"> 
+             <string>gridX</string> 
              <int>3</int> 
+            </void> 
+            <void method="setProperty"> 
+             <string>gridY</string> 
+             <int>7</int> 
             </void> 
            </object> 
           </void> 
@@ -212,6 +289,14 @@
             <void property="name"> 
              <string>okButton</string> 
             </void> 
+            <void method="addEvent"> 
+             <object class="com.jformdesigner.model.FormEvent"> 
+              <string>java.awt.event.ActionListener</string> 
+              <string>actionPerformed</string> 
+              <string>okButtonActionPerformed</string> 
+              <boolean>false</boolean> 
+             </object> 
+            </void> 
            </object> 
            <object class="com.jformdesigner.model.FormLayoutConstraints"> 
             <class>com.jgoodies.forms.layout.CellConstraints</class> 
@@ -234,6 +319,14 @@
             </void> 
             <void property="name"> 
              <string>cancelButton</string> 
+            </void> 
+            <void method="addEvent"> 
+             <object class="com.jformdesigner.model.FormEvent"> 
+              <string>java.awt.event.ActionListener</string> 
+              <string>actionPerformed</string> 
+              <string>cancelButtonActionPerformed</string> 
+              <boolean>false</boolean> 
+             </object> 
             </void> 
            </object> 
            <object class="com.jformdesigner.model.FormLayoutConstraints"> 

@@ -5,16 +5,111 @@
 package edu.yale.plugins.tasks;
 
 import java.awt.*;
+import java.awt.event.*;
+import java.sql.SQLException;
+import java.util.ArrayList;
 import javax.swing.*;
 import com.jgoodies.forms.factories.*;
 import com.jgoodies.forms.layout.*;
+import edu.yale.plugins.tasks.utils.BarcodeLinker;
+import org.archiviststoolkit.model.Locations;
 
 /**
  * @author Nathan Stevens
  */
 public class BarcodeLinkerFrame extends JFrame {
+    private BarcodeLinker barcodeLinker;
+
     public BarcodeLinkerFrame() {
         initComponents();
+        initBarcodeLinker();
+    }
+
+    /**
+     * init the barcode linker object
+     */
+    private void initBarcodeLinker() {
+        try {
+            barcodeLinker = new BarcodeLinker();
+        } catch (SQLException e) {
+            e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
+        } catch (ClassNotFoundException e) {
+            e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
+        }
+    }
+
+    /**
+     * The OK button was pressed
+     */
+    private void okButtonActionPerformed() {
+        Locations location = findLocation();
+
+        if(location != null) {
+            linkContainersToLocation(location);
+        }
+    }
+
+    /**
+     * Method to link the containers with the barcodes to the particular location
+     * @param location
+     */
+    private void linkContainersToLocation(Locations location) {
+        String barcodesText = barcodesTextArea.getText().trim();
+        if(!barcodesText.isEmpty()) {
+            String[] sa = barcodesText.split("\\s*\n");
+            barcodeLinker.linkContainers(location, sa);
+        }
+    }
+
+    /**
+     * Method to find the location
+     * @return
+     */
+    private Locations findLocation() {
+        String locationBarcode = locationBarcodeTextField.getText();
+        Locations location = barcodeLinker.getLocationByBarcode(locationBarcode);
+
+        if(location != null) {
+            locationLabel.setText(location.toString());
+        } else {
+            locationLabel.setText("location not found ...");
+        }
+
+        return location;
+    }
+
+    /**
+     * Method to search for instances
+     */
+    private void searchTextFieldActionPerformed() {
+        String barcode = searchTextField.getText();
+
+        if(!barcode.isEmpty()) {
+            ArrayList<String> barcodeList = barcodeLinker.findInstacesByBarcode(barcode);
+
+            String barcodes = "";
+            for(String foundBarcode: barcodeList) {
+                barcodes += foundBarcode + "\n";
+            }
+
+            instanceCountLabel.setText("Instances (" + barcodeList.size() + ")");
+            barcodesTextArea.setText(barcodes.trim());
+        }
+    }
+
+    /**
+     * Find the location and display it
+     */
+    private void locationBarcodeTextFieldActionPerformed() {
+        findLocation();
+    }
+
+    /**
+     * The cancel button pressed so hide the button
+     */
+    private void cancelButtonActionPerformed() {
+        setVisible(false);
+        dispose();
     }
 
     private void initComponents() {
@@ -24,9 +119,12 @@ public class BarcodeLinkerFrame extends JFrame {
         contentPanel = new JPanel();
         label1 = new JLabel();
         locationBarcodeTextField = new JTextField();
+        locationLabel = new JLabel();
         label2 = new JLabel();
         scrollPane1 = new JScrollPane();
-        textArea1 = new JTextArea();
+        barcodesTextArea = new JTextArea();
+        instanceCountLabel = new JLabel();
+        searchTextField = new JTextField();
         buttonBar = new JPanel();
         testOnlyCheckBox = new JCheckBox();
         okButton = new JButton();
@@ -54,7 +152,11 @@ public class BarcodeLinkerFrame extends JFrame {
                     new RowSpec[] {
                         FormFactory.DEFAULT_ROWSPEC,
                         FormFactory.LINE_GAP_ROWSPEC,
-                        new RowSpec(RowSpec.TOP, Sizes.DEFAULT, FormSpec.NO_GROW)
+                        FormFactory.DEFAULT_ROWSPEC,
+                        FormFactory.LINE_GAP_ROWSPEC,
+                        new RowSpec(RowSpec.TOP, Sizes.DEFAULT, FormSpec.NO_GROW),
+                        FormFactory.LINE_GAP_ROWSPEC,
+                        FormFactory.DEFAULT_ROWSPEC
                     }));
 
                 //---- label1 ----
@@ -63,20 +165,41 @@ public class BarcodeLinkerFrame extends JFrame {
 
                 //---- locationBarcodeTextField ----
                 locationBarcodeTextField.setColumns(40);
+                locationBarcodeTextField.addActionListener(new ActionListener() {
+                    public void actionPerformed(ActionEvent e) {
+                        locationBarcodeTextFieldActionPerformed();
+                    }
+                });
                 contentPanel.add(locationBarcodeTextField, cc.xy(3, 1));
+
+                //---- locationLabel ----
+                locationLabel.setText("not found ...");
+                contentPanel.add(locationLabel, cc.xy(3, 3));
 
                 //---- label2 ----
                 label2.setText("Container Barcodes");
-                contentPanel.add(label2, cc.xy(1, 3));
+                contentPanel.add(label2, cc.xy(1, 5));
 
                 //======== scrollPane1 ========
                 {
 
-                    //---- textArea1 ----
-                    textArea1.setRows(25);
-                    scrollPane1.setViewportView(textArea1);
+                    //---- barcodesTextArea ----
+                    barcodesTextArea.setRows(25);
+                    scrollPane1.setViewportView(barcodesTextArea);
                 }
-                contentPanel.add(scrollPane1, cc.xy(3, 3));
+                contentPanel.add(scrollPane1, cc.xy(3, 5));
+
+                //---- instanceCountLabel ----
+                instanceCountLabel.setText("Find Instances");
+                contentPanel.add(instanceCountLabel, cc.xy(1, 7));
+
+                //---- searchTextField ----
+                searchTextField.addActionListener(new ActionListener() {
+                    public void actionPerformed(ActionEvent e) {
+                        searchTextFieldActionPerformed();
+                    }
+                });
+                contentPanel.add(searchTextField, cc.xy(3, 7));
             }
             dialogPane.add(contentPanel, BorderLayout.CENTER);
 
@@ -100,10 +223,20 @@ public class BarcodeLinkerFrame extends JFrame {
 
                 //---- okButton ----
                 okButton.setText("Link");
+                okButton.addActionListener(new ActionListener() {
+                    public void actionPerformed(ActionEvent e) {
+                        okButtonActionPerformed();
+                    }
+                });
                 buttonBar.add(okButton, cc.xy(4, 1));
 
                 //---- cancelButton ----
                 cancelButton.setText("Close");
+                cancelButton.addActionListener(new ActionListener() {
+                    public void actionPerformed(ActionEvent e) {
+                        cancelButtonActionPerformed();
+                    }
+                });
                 buttonBar.add(cancelButton, cc.xy(6, 1));
             }
             dialogPane.add(buttonBar, BorderLayout.SOUTH);
@@ -120,9 +253,12 @@ public class BarcodeLinkerFrame extends JFrame {
     private JPanel contentPanel;
     private JLabel label1;
     private JTextField locationBarcodeTextField;
+    private JLabel locationLabel;
     private JLabel label2;
     private JScrollPane scrollPane1;
-    private JTextArea textArea1;
+    private JTextArea barcodesTextArea;
+    private JLabel instanceCountLabel;
+    private JTextField searchTextField;
     private JPanel buttonBar;
     private JCheckBox testOnlyCheckBox;
     private JButton okButton;
