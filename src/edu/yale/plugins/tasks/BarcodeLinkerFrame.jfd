@@ -14,7 +14,7 @@
       </object> 
       <void method="setProperty"> 
        <string>title</string> 
-       <string>Barcode Linker</string> 
+       <string>Barcode Linker v0.1</string> 
       </void> 
       <void method="add"> 
        <object class="com.jformdesigner.model.FormContainer"> 
@@ -40,7 +40,7 @@
            </void> 
            <void method="setProperty"> 
             <string>$rowSpecs</string> 
-            <string>default, linegap, default, linegap, top:default, linegap, default</string> 
+            <string>default, linegap, default, linegap, top:default, linegap, default, linegap, default</string> 
            </void> 
           </object> 
           <void property="name"> 
@@ -223,6 +223,31 @@
             <void method="setProperty"> 
              <string>gridY</string> 
              <int>7</int> 
+            </void> 
+           </object> 
+          </void> 
+          <void method="add"> 
+           <object class="com.jformdesigner.model.FormComponent"> 
+            <string>javax.swing.JProgressBar</string> 
+            <void property="name"> 
+             <string>progressBar1</string> 
+            </void> 
+            <void method="auxiliary"> 
+             <void method="setProperty"> 
+              <string>JavaCodeGenerator.variableName</string> 
+              <string>progressBar</string> 
+             </void> 
+            </void> 
+           </object> 
+           <object class="com.jformdesigner.model.FormLayoutConstraints"> 
+            <class>com.jgoodies.forms.layout.CellConstraints</class> 
+            <void method="setProperty"> 
+             <string>gridY</string> 
+             <int>9</int> 
+            </void> 
+            <void method="setProperty"> 
+             <string>gridWidth</string> 
+             <int>3</int> 
             </void> 
            </object> 
           </void> 

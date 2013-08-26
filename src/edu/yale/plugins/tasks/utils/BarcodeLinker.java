@@ -21,6 +21,8 @@ public class BarcodeLinker {
     private Connection connection;
     private DomainAccessObject locationDAO;
 
+    private PreparedStatement instanceLookupByBarcode;
+
     /**
      * The main constructor
      * @throws SQLException
@@ -31,6 +33,14 @@ public class BarcodeLinker {
         connection = DriverManager.getConnection(SessionFactory.getDatabaseUrl(),
                 SessionFactory.getUserName(),
                 SessionFactory.getPassword());
+
+        // initiate the instance lookup by barcode
+        String sqlString = "SELECT * " +
+                "FROM ArchDescriptionInstances\n" +
+                "WHERE barcode = ? \n" +
+                "AND instanceDescriminator = 'analog'";
+
+        instanceLookupByBarcode = connection.prepareStatement(sqlString);
 
         // initiate the domain access objects
         try {
@@ -73,25 +83,53 @@ public class BarcodeLinker {
      * @param barcodeList
      */
     public void linkContainers(Locations location, String[] barcodeList) {
+        sb = new StringBuilder();
         Long locationId = location.getLocationId();
 
         for(String barcode: barcodeList) {
+            ArrayList<String> instanceList = findInstancesForBarcode(barcode);
 
+            sb.append("Updating Location for ").append(instanceList.size()).append(" instances with barcode ")
+                    .append(barcode).append("\n");
+
+            System.out.println("Barcode: " + barcode + " Instance Count: " + instanceList.size());
         }
     }
 
     /**
-     * Method to find instances of a certain barcode
-     * @param barcode
+     * Method to get all the instances with a certain barcode
+     */
+    public ArrayList<String> findInstancesForBarcode(String barcode)  {
+        ArrayList<String> instanceList = new ArrayList<String>();;
+
+        try {
+            instanceLookupByBarcode.setString(1, barcode);
+            ResultSet instances = instanceLookupByBarcode.executeQuery();
+
+            while (instances.next()) {
+                Long id = instances.getLong("archDescriptionInstancesId");
+                String foundBarcode = instances.getString("barcode");
+                instanceList.add(id  + " : " + foundBarcode);
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
+        }
+
+        return instanceList;
+    }
+
+    /**
+     * Method to find instances of a certain searchFor
+     * @param searchFor
      * @return
      */
-    public ArrayList<String> findInstacesByBarcode(String barcode) {
+    public ArrayList<String> findUniqueBarcodes(String searchFor) {
         ArrayList<String> barcodeList = new ArrayList<String>();
 
         String sqlString = "SELECT * " +
                 "FROM ArchDescriptionInstances\n" +
-                "WHERE barcode LIKE '" + barcode + "' \n" +
-                "AND instanceDescriminator = 'analog'";
+                "WHERE barcode LIKE '" + searchFor + "' \n" +
+                "AND instanceDescriminator = 'analog' GROUP BY barcode";
 
         Statement sqlStatement = null;
 
@@ -115,7 +153,7 @@ public class BarcodeLinker {
      *
      * @return
      */
-    private String getMessages() {
-        return sb.toString();
+    public String getMessages() {
+        return sb.toString().trim();
     }
 }

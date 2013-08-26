@@ -1007,7 +1007,11 @@ public class BoxLookupAndUpdate {
 
             if (componentList.size() > 0) {
                 for (ComponentInfo component : componentList) {
-                    recurseThroughComponents(component.getComponentId(), hashKey, component.isHasChild(), componentLookup, component.getTitle());
+                    Long id = component.getComponentId();
+                    SeriesInfo series = seriesInfo.get(hashKey);
+                    series.addComponentId(id);
+
+                    recurseThroughComponents(id, hashKey, component.isHasChild(), componentLookup, component.getTitle());
                 }
             } else {
                 //this is a hack because the has child flag for components may be set wrong

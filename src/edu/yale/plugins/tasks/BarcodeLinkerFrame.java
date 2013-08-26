@@ -58,6 +58,7 @@ public class BarcodeLinkerFrame extends JFrame {
         if(!barcodesText.isEmpty()) {
             String[] sa = barcodesText.split("\\s*\n");
             barcodeLinker.linkContainers(location, sa);
+            barcodesTextArea.setText(barcodeLinker.getMessages());
         }
     }
 
@@ -85,7 +86,7 @@ public class BarcodeLinkerFrame extends JFrame {
         String barcode = searchTextField.getText();
 
         if(!barcode.isEmpty()) {
-            ArrayList<String> barcodeList = barcodeLinker.findInstacesByBarcode(barcode);
+            ArrayList<String> barcodeList = barcodeLinker.findUniqueBarcodes(barcode);
 
             String barcodes = "";
             for(String foundBarcode: barcodeList) {
@@ -125,6 +126,7 @@ public class BarcodeLinkerFrame extends JFrame {
         barcodesTextArea = new JTextArea();
         instanceCountLabel = new JLabel();
         searchTextField = new JTextField();
+        progressBar = new JProgressBar();
         buttonBar = new JPanel();
         testOnlyCheckBox = new JCheckBox();
         okButton = new JButton();
@@ -132,7 +134,7 @@ public class BarcodeLinkerFrame extends JFrame {
         CellConstraints cc = new CellConstraints();
 
         //======== this ========
-        setTitle("Barcode Linker");
+        setTitle("Barcode Linker v0.1");
         Container contentPane = getContentPane();
         contentPane.setLayout(new BorderLayout());
 
@@ -155,6 +157,8 @@ public class BarcodeLinkerFrame extends JFrame {
                         FormFactory.DEFAULT_ROWSPEC,
                         FormFactory.LINE_GAP_ROWSPEC,
                         new RowSpec(RowSpec.TOP, Sizes.DEFAULT, FormSpec.NO_GROW),
+                        FormFactory.LINE_GAP_ROWSPEC,
+                        FormFactory.DEFAULT_ROWSPEC,
                         FormFactory.LINE_GAP_ROWSPEC,
                         FormFactory.DEFAULT_ROWSPEC
                     }));
@@ -200,6 +204,7 @@ public class BarcodeLinkerFrame extends JFrame {
                     }
                 });
                 contentPanel.add(searchTextField, cc.xy(3, 7));
+                contentPanel.add(progressBar, cc.xywh(1, 9, 3, 1));
             }
             dialogPane.add(contentPanel, BorderLayout.CENTER);
 
@@ -259,6 +264,7 @@ public class BarcodeLinkerFrame extends JFrame {
     private JTextArea barcodesTextArea;
     private JLabel instanceCountLabel;
     private JTextField searchTextField;
+    private JProgressBar progressBar;
     private JPanel buttonBar;
     private JCheckBox testOnlyCheckBox;
     private JButton okButton;
