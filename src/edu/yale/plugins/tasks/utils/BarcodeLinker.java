@@ -1,5 +1,6 @@
 package edu.yale.plugins.tasks.utils;
 
+import edu.yale.plugins.tasks.BarcodeLinkerFrame;
 import org.archiviststoolkit.hibernate.SessionFactory;
 import org.archiviststoolkit.model.Locations;
 import org.archiviststoolkit.mydomain.*;
@@ -17,18 +18,23 @@ import java.util.ArrayList;
  * To change this template use File | Settings | File Templates.
  */
 public class BarcodeLinker {
+    private BarcodeLinkerFrame barcodeLinkerFrame;
+
     private StringBuilder sb;
     private Connection connection;
     private DomainAccessObject locationDAO;
-
     private PreparedStatement instanceLookupByBarcode;
+    private boolean stopLinking = false;
 
     /**
      * The main constructor
      * @throws SQLException
      * @throws ClassNotFoundException
      */
-    public BarcodeLinker() throws SQLException, ClassNotFoundException {
+    public BarcodeLinker(BarcodeLinkerFrame barcodeLinkerFrame) throws SQLException, ClassNotFoundException {
+        this.barcodeLinkerFrame = barcodeLinkerFrame;
+
+        // get the database connection
         Class.forName(SessionFactory.getDriverClass());
         connection = DriverManager.getConnection(SessionFactory.getDatabaseUrl(),
                 SessionFactory.getUserName(),
@@ -81,16 +87,26 @@ public class BarcodeLinker {
      *
      * @param location
      * @param barcodeList
+     * @param testOnly
      */
-    public void linkContainers(Locations location, String[] barcodeList) {
+    public void linkContainers(Locations location, String[] barcodeList, boolean testOnly) {
         sb = new StringBuilder();
+        stopLinking = false;
+
         Long locationId = location.getLocationId();
 
-        for(String barcode: barcodeList) {
+        for(int i = 0; i < barcodeList.length; i++) {
+            if(stopLinking) break;
+
+            String barcode = barcodeList[i];
             ArrayList<String> instanceList = findInstancesForBarcode(barcode);
 
-            sb.append("Updating Location for ").append(instanceList.size()).append(" instances with barcode ")
+            sb.append(i+1).append("\t");
+            sb.append("Updated ").append(instanceList.size()).append(" instances with barcode ")
                     .append(barcode).append("\n");
+
+            // updating the progress bar
+            barcodeLinkerFrame.updateProgress(i+1);
 
             System.out.println("Barcode: " + barcode + " Instance Count: " + instanceList.size());
         }
@@ -100,7 +116,7 @@ public class BarcodeLinker {
      * Method to get all the instances with a certain barcode
      */
     public ArrayList<String> findInstancesForBarcode(String barcode)  {
-        ArrayList<String> instanceList = new ArrayList<String>();;
+        ArrayList<String> instanceList = new ArrayList<String>();
 
         try {
             instanceLookupByBarcode.setString(1, barcode);
@@ -155,5 +171,12 @@ public class BarcodeLinker {
      */
     public String getMessages() {
         return sb.toString().trim();
+    }
+
+    /**
+     * Stop any linking task in progress
+     */
+    public void stopLinking() {
+        stopLinking = true;
     }
 }

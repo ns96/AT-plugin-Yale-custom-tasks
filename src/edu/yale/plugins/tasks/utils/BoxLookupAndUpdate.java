@@ -103,6 +103,8 @@ public class BoxLookupAndUpdate {
                 "\tResourcesComponents.extentType, \n" +
                 "\tResourcesComponents.extentNumber, \n" +
                 "\tResourcesComponents.dateExpression, \n" +
+                "\tResourcesComponents.dateBegin, \n" +
+                "\tResourcesComponents.dateEnd, \n" +
                 "\tResourcesComponents.subdivisionIdentifier\n" +
                 "FROM ResourcesComponents\n" +
                 "WHERE ResourcesComponents.resourceId = ?";
@@ -114,6 +116,8 @@ public class BoxLookupAndUpdate {
                 "\tResourcesComponents.extentType, \n" +
                 "\tResourcesComponents.extentNumber, \n" +
                 "\tResourcesComponents.dateExpression, \n" +
+                "\tResourcesComponents.dateBegin, \n" +
+                "\tResourcesComponents.dateEnd, \n" +
                 "\tResourcesComponents.hasChild\n" +
                 "FROM ResourcesComponents\n" +
                 "WHERE ResourcesComponents.parentResourceComponentId = ?";
@@ -201,7 +205,7 @@ public class BoxLookupAndUpdate {
                                 hashKey,
                                 components.getBoolean("hasChild"),
                                 componentLookupByComponent,
-                                components.getString("title"));
+                                getComponentTitle(components));
                     }
                 }
 
@@ -341,16 +345,17 @@ public class BoxLookupAndUpdate {
             ResultSet components = componentLookupByResource.executeQuery();
 
             while (components.next()) {
-                uniqueId = determineComponentUniqueIdentifier("", components.getString("subdivisionIdentifier"), components.getString("title"));
+                String componentTitle = getComponentTitle(components);
+                uniqueId = determineComponentUniqueIdentifier("", components.getString("subdivisionIdentifier"), componentTitle);
                 //uniqueId = "" + components.getLong("resourceComponentId");
 
                 hashKey = uniqueId;
                 if (!seriesInfo.containsKey(hashKey)) {
-                    SeriesInfo si = new SeriesInfo(uniqueId, components.getString("title"));
+                    SeriesInfo si = new SeriesInfo(uniqueId, getComponentTitle(components));
                     si.addComponentId(components.getLong("resourceComponentId"));
                     seriesInfo.put(hashKey, si);
 
-                    message = "Gathering Series Info: " + components.getString("title");
+                    message = "Gathering Series Info: " + componentTitle;
                     System.out.println(message);
                     if(monitor != null) monitor.setTextLine(message, 3);
                 }
@@ -359,7 +364,7 @@ public class BoxLookupAndUpdate {
                         hashKey,
                         components.getBoolean("hasChild"),
                         componentLookupByComponent,
-                        components.getString("title"));
+                        componentTitle);
             }
 
             ResultSet instances;
@@ -608,16 +613,17 @@ public class BoxLookupAndUpdate {
             componentLookupByResource.setLong(1, resourceId);
             ResultSet components = componentLookupByResource.executeQuery();
             while (components.next()) {
-                uniqueId = determineComponentUniqueIdentifier("", components.getString("subdivisionIdentifier"), components.getString("title"));
+                String componentTitle = getComponentTitle(components);
+                uniqueId = determineComponentUniqueIdentifier("", components.getString("subdivisionIdentifier"), componentTitle);
                 //uniqueId = "" + components.getLong("resourceComponentId");
 
                 hashKey = uniqueId;
                 if (!seriesInfo.containsKey(hashKey)) {
-                    SeriesInfo si = new SeriesInfo(uniqueId, components.getString("title"));
+                    SeriesInfo si = new SeriesInfo(uniqueId, componentTitle);
                     si.addComponentId(components.getLong("resourceComponentId"));
                     seriesInfo.put(hashKey, si);
 
-                    message = "Gathering Series Info: " + components.getString("title");
+                    message = "Gathering Series Info: " + componentTitle;
                     System.out.println(message);
                     if(monitor != null) monitor.setTextLine(message, 3);
                 }
@@ -626,7 +632,7 @@ public class BoxLookupAndUpdate {
                         hashKey,
                         components.getBoolean("hasChild"),
                         componentLookupByComponent,
-                        components.getString("title"));
+                        componentTitle);
 
             }
 
@@ -984,21 +990,19 @@ public class BoxLookupAndUpdate {
             ResultSet components = componentLookup.executeQuery();
             ArrayList<ComponentInfo> componentList = new ArrayList<ComponentInfo>();
             while (components.next()) {
+                String componentTitle = getComponentTitle(components);
+
                 componentList.add(new ComponentInfo(components.getLong("resourceComponentId"),
                         components.getString("resourceLevel"),
-                        components.getString("title"),
+                        componentTitle,
                         components.getBoolean("hasChild")));
-                componentTitleLookup.put(components.getLong("resourceComponentId"), components.getString("title"));
+                componentTitleLookup.put(components.getLong("resourceComponentId"), componentTitle);
 
                 // If we are generating an A/V report we will need more information
                 // about the component so get it now
                 if(componentInfoLookup != null) {
-                    // clean up the title
-                    String orgTitle =  StringHelper.tagRemover(components.getString("title"));
-                    String newTitle = orgTitle.replace("\n", " ");
-
                     Long id = components.getLong("resourceComponentId");
-                    componentInfoLookup.put(id + "_title", newTitle);
+                    componentInfoLookup.put(id + "_title", componentTitle);
                     componentInfoLookup.put(id + "_extentType", components.getString("extentType"));
                     componentInfoLookup.put(id + "_extentNumber", components.getString("extentNumber"));
                     componentInfoLookup.put(id + "_dateExpression", components.getString("dateExpression"));
@@ -1024,6 +1028,32 @@ public class BoxLookupAndUpdate {
 
             // add the component title in case we don't have a structure that's series/subseries
             componentTitleLookup.put(componentID, title);
+        }
+    }
+
+    /**
+     * Method to return the title for a component which could be the title, date expression or dates
+     * @return
+     */
+    public String getComponentTitle(ResultSet components) throws SQLException {
+        String title = components.getString("title");
+        String dateExpression = components.getString("dateExpression");
+        int dateBegin = components.getInt("dateBegin");
+        int dateEnd = components.getInt("dateEnd");
+
+        if (title != null && title.length() > 0) {
+            String cleanTitle = StringHelper.tagRemover(title);
+            return cleanTitle.replace("\n", " ");
+        } else {
+            if (dateExpression != null && dateExpression.length() > 0) {
+                return dateExpression;
+            } else if (dateBegin == 0) {
+                return "";
+            } else if (dateBegin == dateEnd) {
+                return "" + dateBegin;
+            } else {
+                return dateBegin + "-" + dateEnd;
+            }
         }
     }
 

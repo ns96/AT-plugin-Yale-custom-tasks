@@ -8,10 +8,14 @@ import java.awt.*;
 import java.awt.event.*;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Random;
 import javax.swing.*;
 import com.jgoodies.forms.factories.*;
 import com.jgoodies.forms.layout.*;
 import edu.yale.plugins.tasks.utils.BarcodeLinker;
+import org.archiviststoolkit.ApplicationFrame;
+import org.archiviststoolkit.importer.ImportExportLogDialog;
 import org.archiviststoolkit.model.Locations;
 
 /**
@@ -30,7 +34,7 @@ public class BarcodeLinkerFrame extends JFrame {
      */
     private void initBarcodeLinker() {
         try {
-            barcodeLinker = new BarcodeLinker();
+            barcodeLinker = new BarcodeLinker(this);
         } catch (SQLException e) {
             e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
         } catch (ClassNotFoundException e) {
@@ -53,12 +57,38 @@ public class BarcodeLinkerFrame extends JFrame {
      * Method to link the containers with the barcodes to the particular location
      * @param location
      */
-    private void linkContainersToLocation(Locations location) {
+    private void linkContainersToLocation(final Locations location) {
         String barcodesText = barcodesTextArea.getText().trim();
         if(!barcodesText.isEmpty()) {
-            String[] sa = barcodesText.split("\\s*\n");
-            barcodeLinker.linkContainers(location, sa);
-            barcodesTextArea.setText(barcodeLinker.getMessages());
+            final String[] sa = barcodesText.split("\\s*\n");
+
+            // start a thread to link the containers and locations
+            Thread performer = new Thread(new Runnable() {
+                public void run() {
+                    // disable the link button and reset the progress bar
+                    okButton.setEnabled(false);
+                    progressBar.setMinimum(0);
+                    progressBar.setMaximum(sa.length);
+                    progressBar.setStringPainted(true);
+                    progressBar.setString("Updating Location for " + sa.length + " Containers");
+
+                    // now update the locations
+                    barcodeLinker.linkContainers(location, sa, testOnlyCheckBox.isSelected());
+
+                    // re-enable the button
+                    okButton.setEnabled(true);
+                    progressBar.setValue(0);
+
+                    // display the results
+                    ImportExportLogDialog logDialog = new ImportExportLogDialog(null, ImportExportLogDialog.DIALOG_TYPE_IMPORT, barcodeLinker.getMessages());
+                    logDialog.setTitle("Location to Container Linking Log");
+                    logDialog.pack();
+                    logDialog.setVisible(true);
+                }
+            });
+
+            // start thread now
+            performer.start();
         }
     }
 
@@ -113,6 +143,13 @@ public class BarcodeLinkerFrame extends JFrame {
         dispose();
     }
 
+    /**
+     * Method to stop the linking progress
+     */
+    private void stopButtonActionPerformed() {
+        barcodeLinker.stopLinking();
+    }
+
     private void initComponents() {
         // JFormDesigner - Component initialization - DO NOT MODIFY  //GEN-BEGIN:initComponents
         // Generated using JFormDesigner non-commercial license
@@ -130,6 +167,8 @@ public class BarcodeLinkerFrame extends JFrame {
         buttonBar = new JPanel();
         testOnlyCheckBox = new JCheckBox();
         okButton = new JButton();
+        button1 = new JButton();
+        stopButton = new JButton();
         cancelButton = new JButton();
         CellConstraints cc = new CellConstraints();
 
@@ -194,7 +233,7 @@ public class BarcodeLinkerFrame extends JFrame {
                 contentPanel.add(scrollPane1, cc.xy(3, 5));
 
                 //---- instanceCountLabel ----
-                instanceCountLabel.setText("Find Instances");
+                instanceCountLabel.setText("Find Containers");
                 contentPanel.add(instanceCountLabel, cc.xy(1, 7));
 
                 //---- searchTextField ----
@@ -216,6 +255,10 @@ public class BarcodeLinkerFrame extends JFrame {
                         FormFactory.LABEL_COMPONENT_GAP_COLSPEC,
                         FormFactory.DEFAULT_COLSPEC,
                         FormFactory.GLUE_COLSPEC,
+                        FormFactory.DEFAULT_COLSPEC,
+                        FormFactory.LABEL_COMPONENT_GAP_COLSPEC,
+                        FormFactory.DEFAULT_COLSPEC,
+                        FormFactory.LABEL_COMPONENT_GAP_COLSPEC,
                         FormFactory.BUTTON_COLSPEC,
                         FormFactory.RELATED_GAP_COLSPEC,
                         FormFactory.BUTTON_COLSPEC
@@ -235,6 +278,19 @@ public class BarcodeLinkerFrame extends JFrame {
                 });
                 buttonBar.add(okButton, cc.xy(4, 1));
 
+                //---- button1 ----
+                button1.setText("Find Location");
+                buttonBar.add(button1, cc.xy(6, 1));
+
+                //---- stopButton ----
+                stopButton.setText("Stop");
+                stopButton.addActionListener(new ActionListener() {
+                    public void actionPerformed(ActionEvent e) {
+                        stopButtonActionPerformed();
+                    }
+                });
+                buttonBar.add(stopButton, cc.xy(8, 1));
+
                 //---- cancelButton ----
                 cancelButton.setText("Close");
                 cancelButton.addActionListener(new ActionListener() {
@@ -242,7 +298,7 @@ public class BarcodeLinkerFrame extends JFrame {
                         cancelButtonActionPerformed();
                     }
                 });
-                buttonBar.add(cancelButton, cc.xy(6, 1));
+                buttonBar.add(cancelButton, cc.xy(10, 1));
             }
             dialogPane.add(buttonBar, BorderLayout.SOUTH);
         }
@@ -268,6 +324,16 @@ public class BarcodeLinkerFrame extends JFrame {
     private JPanel buttonBar;
     private JCheckBox testOnlyCheckBox;
     private JButton okButton;
+    private JButton button1;
+    private JButton stopButton;
     private JButton cancelButton;
     // JFormDesigner - End of variables declaration  //GEN-END:variables
+
+    /**
+     * Method to update the progress bar
+     * @param i
+     */
+    public void updateProgress(int i) {
+        progressBar.setValue(i);
+    }
 }

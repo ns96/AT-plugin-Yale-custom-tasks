@@ -181,7 +181,7 @@
             <string>javax.swing.JLabel</string> 
             <void method="setProperty"> 
              <string>text</string> 
-             <string>Find Instances</string> 
+             <string>Find Containers</string> 
             </void> 
             <void property="name"> 
              <string>instanceCountLabel</string> 
@@ -267,7 +267,7 @@
            <class>com.jgoodies.forms.layout.FormLayout</class> 
            <void method="setProperty"> 
             <string>$columnSpecs</string> 
-            <string>labelcompgap, default, glue, button, relgap, button</string> 
+            <string>labelcompgap, default, glue, default, labelcompgap, default, labelcompgap, button, relgap, button</string> 
            </void> 
            <void method="setProperty"> 
             <string>$rowSpecs</string> 
@@ -329,6 +329,56 @@
              <string>gridX</string> 
              <int>4</int> 
             </void> 
+           </object> 
+          </void> 
+          <void method="add"> 
+           <object class="com.jformdesigner.model.FormComponent"> 
+            <string>javax.swing.JButton</string> 
+            <void method="setProperty"> 
+             <string>text</string> 
+             <string>Find Location</string> 
+            </void> 
+            <void property="name"> 
+             <string>button1</string> 
+            </void> 
+           </object> 
+           <object class="com.jformdesigner.model.FormLayoutConstraints"> 
+            <class>com.jgoodies.forms.layout.CellConstraints</class> 
+            <void method="setProperty"> 
+             <string>gridX</string> 
+             <int>6</int> 
+            </void> 
+            <void method="setProperty"> 
+             <string>gridY</string> 
+             <int>1</int> 
+            </void> 
+           </object> 
+          </void> 
+          <void method="add"> 
+           <object class="com.jformdesigner.model.FormComponent"> 
+            <string>javax.swing.JButton</string> 
+            <void method="setProperty"> 
+             <string>text</string> 
+             <string>Stop</string> 
+            </void> 
+            <void property="name"> 
+             <string>stopButton</string> 
+            </void> 
+            <void method="addEvent"> 
+             <object class="com.jformdesigner.model.FormEvent"> 
+              <string>java.awt.event.ActionListener</string> 
+              <string>actionPerformed</string> 
+              <string>stopButtonActionPerformed</string> 
+              <boolean>false</boolean> 
+             </object> 
+            </void> 
+           </object> 
+           <object class="com.jformdesigner.model.FormLayoutConstraints"> 
+            <class>com.jgoodies.forms.layout.CellConstraints</class> 
+            <void method="setProperty"> 
+             <string>gridX</string> 
+             <int>8</int> 
+            </void> 
             <void method="setProperty"> 
              <string>gridY</string> 
              <int>1</int> 
@@ -358,7 +408,7 @@
             <class>com.jgoodies.forms.layout.CellConstraints</class> 
             <void method="setProperty"> 
              <string>gridX</string> 
-             <int>6</int> 
+             <int>10</int> 
             </void> 
             <void method="setProperty"> 
              <string>gridY</string> 
