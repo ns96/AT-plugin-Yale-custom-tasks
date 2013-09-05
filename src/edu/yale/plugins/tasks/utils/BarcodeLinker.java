@@ -24,7 +24,7 @@ public class BarcodeLinker {
     private Connection connection;
     private DomainAccessObject locationDAO;
     private PreparedStatement instanceLookupByBarcode;
-    private boolean stopLinking = false;
+    private boolean stopOperation = false;
 
     /**
      * The main constructor
@@ -91,12 +91,12 @@ public class BarcodeLinker {
      */
     public void linkContainers(Locations location, String[] barcodeList, boolean testOnly) {
         sb = new StringBuilder();
-        stopLinking = false;
+        stopOperation = false;
 
         Long locationId = location.getLocationId();
 
         for(int i = 0; i < barcodeList.length; i++) {
-            if(stopLinking) break;
+            if(stopOperation) break;
 
             String barcode = barcodeList[i];
             ArrayList<String> instanceList = findInstancesForBarcode(barcode);
@@ -109,6 +109,40 @@ public class BarcodeLinker {
             barcodeLinkerFrame.updateProgress(i+1);
 
             System.out.println("Barcode: " + barcode + " Instance Count: " + instanceList.size());
+        }
+    }
+
+    /**
+     * Method to locate container locations using their barcode
+     *
+     * @param barcodeList
+     */
+    public void findContainerLocations(String[] barcodeList) {
+        sb = new StringBuilder();
+        stopOperation = false;
+
+        Locations location = null;
+
+        for(int i = 0; i < barcodeList.length; i++) {
+            if(stopOperation) break;
+
+            String barcode = barcodeList[i];
+
+            // find the container for the barcode
+            Long[] ids = findContainer(barcode);
+
+            if(ids[0] != -1L) {
+                // get the location object
+
+                sb.append("[").append(ids[0]).append("] Container: ").append(barcode).append("\n");
+                sb.append("Location: ").append(location.toString()).append("\n");
+            } else {
+                sb.append("[").append(ids[0]).append("] Container Not Found: ").append(barcode).append("\n");
+            }
+            // updating the progress bar
+            barcodeLinkerFrame.updateProgress(i+1);
+
+            System.out.println("Container: " + barcode + ", Location:" );
         }
     }
 
@@ -165,6 +199,38 @@ public class BarcodeLinker {
     }
 
     /**
+     * Method to find container ids based on a barcode
+     *
+     * @param searchFor
+     * @return
+     */
+    public Long[] findContainer(String searchFor) {
+        Long[] ids = new Long[]{-1L, -1L};
+
+        String sqlString = "SELECT * " +
+                "FROM ArchDescriptionInstances\n" +
+                "WHERE barcode = '" + searchFor + "' \n" +
+                "AND instanceDescriminator = 'analog' GROUP BY barcode LIMIT 1";
+
+        Statement sqlStatement = null;
+
+        try {
+            sqlStatement = connection.createStatement();
+            ResultSet instances = sqlStatement.executeQuery(sqlString);
+
+            if(instances.next()) {
+                ids[0] = instances.getLong("archDescriptionInstancesId");
+                ids[1] = instances.getLong("locationId");
+            }
+
+        } catch (SQLException e) {
+            e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
+        }
+
+        return ids;
+    }
+
+    /**
      * Method to return messages for linking the barcodes
      *
      * @return
@@ -176,7 +242,7 @@ public class BarcodeLinker {
     /**
      * Stop any linking task in progress
      */
-    public void stopLinking() {
-        stopLinking = true;
+    public void stopOperation() {
+        stopOperation = true;
     }
 }

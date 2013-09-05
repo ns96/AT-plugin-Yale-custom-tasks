@@ -309,7 +309,7 @@
             <string>javax.swing.JButton</string> 
             <void method="setProperty"> 
              <string>text</string> 
-             <string>Link</string> 
+             <string>Link Location</string> 
             </void> 
             <void property="name"> 
              <string>okButton</string> 
@@ -339,7 +339,15 @@
              <string>Find Location</string> 
             </void> 
             <void property="name"> 
-             <string>button1</string> 
+             <string>findButton</string> 
+            </void> 
+            <void method="addEvent"> 
+             <object class="com.jformdesigner.model.FormEvent"> 
+              <string>java.awt.event.ActionListener</string> 
+              <string>actionPerformed</string> 
+              <string>findButtonActionPerformed</string> 
+              <boolean>false</boolean> 
+             </object> 
             </void> 
            </object> 
            <object class="com.jformdesigner.model.FormLayoutConstraints"> 
@@ -450,7 +458,7 @@
       <void method="setProperty"> 
        <string>size</string> 
        <object class="java.awt.Dimension"> 
-        <int>485</int> 
+        <int>520</int> 
         <int>300</int> 
        </object> 
       </void> 

@@ -8,13 +8,10 @@ import java.awt.*;
 import java.awt.event.*;
 import java.sql.SQLException;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Random;
 import javax.swing.*;
 import com.jgoodies.forms.factories.*;
 import com.jgoodies.forms.layout.*;
 import edu.yale.plugins.tasks.utils.BarcodeLinker;
-import org.archiviststoolkit.ApplicationFrame;
 import org.archiviststoolkit.importer.ImportExportLogDialog;
 import org.archiviststoolkit.model.Locations;
 
@@ -67,6 +64,8 @@ public class BarcodeLinkerFrame extends JFrame {
                 public void run() {
                     // disable the link button and reset the progress bar
                     okButton.setEnabled(false);
+                    findButton.setEnabled(false);
+
                     progressBar.setMinimum(0);
                     progressBar.setMaximum(sa.length);
                     progressBar.setStringPainted(true);
@@ -77,6 +76,7 @@ public class BarcodeLinkerFrame extends JFrame {
 
                     // re-enable the button
                     okButton.setEnabled(true);
+                    findButton.setEnabled(true);
                     progressBar.setValue(0);
 
                     // display the results
@@ -113,18 +113,37 @@ public class BarcodeLinkerFrame extends JFrame {
      * Method to search for instances
      */
     private void searchTextFieldActionPerformed() {
-        String barcode = searchTextField.getText();
+        final String barcode = searchTextField.getText();
 
         if(!barcode.isEmpty()) {
-            ArrayList<String> barcodeList = barcodeLinker.findUniqueBarcodes(barcode);
+            Thread performer = new Thread(new Runnable() {
+                public void run() {
+                    // disable the link button and reset the progress bar
+                    okButton.setEnabled(false);
+                    findButton.setEnabled(false);
 
-            String barcodes = "";
-            for(String foundBarcode: barcodeList) {
-                barcodes += foundBarcode + "\n";
-            }
+                    progressBar.setIndeterminate(true);
+                    progressBar.setStringPainted(true);
+                    progressBar.setString("Find Containers ...");
 
-            instanceCountLabel.setText("Instances (" + barcodeList.size() + ")");
-            barcodesTextArea.setText(barcodes.trim());
+                    ArrayList<String> barcodeList = barcodeLinker.findUniqueBarcodes(barcode);
+
+                    String barcodes = "";
+                    for(String foundBarcode: barcodeList) {
+                        barcodes += foundBarcode + "\n";
+                    }
+
+                    instanceCountLabel.setText("Containers (" + barcodeList.size() + ")");
+                    barcodesTextArea.setText(barcodes.trim());
+
+                    okButton.setEnabled(true);
+                    findButton.setEnabled(true);
+                    progressBar.setIndeterminate(false);
+                    progressBar.setStringPainted(false);
+                }
+            });
+
+            performer.start();
         }
     }
 
@@ -147,7 +166,47 @@ public class BarcodeLinkerFrame extends JFrame {
      * Method to stop the linking progress
      */
     private void stopButtonActionPerformed() {
-        barcodeLinker.stopLinking();
+        barcodeLinker.stopOperation();
+    }
+
+    /**
+     * Method to find locations based on a container barcode
+     */
+    private void findButtonActionPerformed() {
+        String barcodesText = barcodesTextArea.getText().trim();
+        if(!barcodesText.isEmpty()) {
+            final String[] sa = barcodesText.split("\\s*\n");
+
+            // start a thread to link the containers and locations
+            Thread performer = new Thread(new Runnable() {
+                public void run() {
+                    // disable the link button and reset the progress bar
+                    okButton.setEnabled(false);
+                    findButton.setEnabled(true);
+
+                    progressBar.setMinimum(0);
+                    progressBar.setMaximum(sa.length);
+                    progressBar.setStringPainted(true);
+                    progressBar.setString("Finding Locations for " + sa.length + " Containers");
+
+                    // now update the locations
+                    barcodeLinker.findContainerLocations(sa);
+
+                    // re-enable the button
+                    okButton.setEnabled(true);
+                    progressBar.setValue(0);
+
+                    // display the results
+                    ImportExportLogDialog logDialog = new ImportExportLogDialog(null, ImportExportLogDialog.DIALOG_TYPE_IMPORT, barcodeLinker.getMessages());
+                    logDialog.setTitle("Location to Container Linking Log");
+                    logDialog.pack();
+                    logDialog.setVisible(true);
+                }
+            });
+
+            // start thread now
+            performer.start();
+        }
     }
 
     private void initComponents() {
@@ -167,7 +226,7 @@ public class BarcodeLinkerFrame extends JFrame {
         buttonBar = new JPanel();
         testOnlyCheckBox = new JCheckBox();
         okButton = new JButton();
-        button1 = new JButton();
+        findButton = new JButton();
         stopButton = new JButton();
         cancelButton = new JButton();
         CellConstraints cc = new CellConstraints();
@@ -270,7 +329,7 @@ public class BarcodeLinkerFrame extends JFrame {
                 buttonBar.add(testOnlyCheckBox, cc.xy(2, 1));
 
                 //---- okButton ----
-                okButton.setText("Link");
+                okButton.setText("Link Location");
                 okButton.addActionListener(new ActionListener() {
                     public void actionPerformed(ActionEvent e) {
                         okButtonActionPerformed();
@@ -278,9 +337,14 @@ public class BarcodeLinkerFrame extends JFrame {
                 });
                 buttonBar.add(okButton, cc.xy(4, 1));
 
-                //---- button1 ----
-                button1.setText("Find Location");
-                buttonBar.add(button1, cc.xy(6, 1));
+                //---- findButton ----
+                findButton.setText("Find Location");
+                findButton.addActionListener(new ActionListener() {
+                    public void actionPerformed(ActionEvent e) {
+                        findButtonActionPerformed();
+                    }
+                });
+                buttonBar.add(findButton, cc.xy(6, 1));
 
                 //---- stopButton ----
                 stopButton.setText("Stop");
@@ -324,7 +388,7 @@ public class BarcodeLinkerFrame extends JFrame {
     private JPanel buttonBar;
     private JCheckBox testOnlyCheckBox;
     private JButton okButton;
-    private JButton button1;
+    private JButton findButton;
     private JButton stopButton;
     private JButton cancelButton;
     // JFormDesigner - End of variables declaration  //GEN-END:variables
