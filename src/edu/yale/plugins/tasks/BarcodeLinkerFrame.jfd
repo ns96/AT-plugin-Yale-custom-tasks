@@ -156,7 +156,11 @@
               <string>javax.swing.JTextArea</string> 
               <void method="setProperty"> 
                <string>rows</string> 
-               <int>25</int> 
+               <int>15</int> 
+              </void> 
+              <void method="setProperty"> 
+               <string>tabSize</string> 
+               <int>4</int> 
               </void> 
               <void property="name"> 
                <string>barcodesTextArea</string> 

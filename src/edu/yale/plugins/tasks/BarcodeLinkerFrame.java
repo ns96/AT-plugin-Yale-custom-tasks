@@ -198,7 +198,7 @@ public class BarcodeLinkerFrame extends JFrame {
 
                     // display the results
                     ImportExportLogDialog logDialog = new ImportExportLogDialog(null, ImportExportLogDialog.DIALOG_TYPE_IMPORT, barcodeLinker.getMessages());
-                    logDialog.setTitle("Location to Container Linking Log");
+                    logDialog.setTitle("Container Locations Log");
                     logDialog.pack();
                     logDialog.setVisible(true);
                 }
@@ -286,7 +286,8 @@ public class BarcodeLinkerFrame extends JFrame {
                 {
 
                     //---- barcodesTextArea ----
-                    barcodesTextArea.setRows(25);
+                    barcodesTextArea.setRows(15);
+                    barcodesTextArea.setTabSize(4);
                     scrollPane1.setViewportView(barcodesTextArea);
                 }
                 contentPanel.add(scrollPane1, cc.xy(3, 5));
