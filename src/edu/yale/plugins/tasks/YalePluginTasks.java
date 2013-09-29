@@ -7,6 +7,7 @@ import edu.yale.plugins.tasks.model.BoxLookupReturnRecordsCollection;
 import edu.yale.plugins.tasks.search.BoxLookupReturnScreen;
 import edu.yale.plugins.tasks.utils.BoxLookupAndUpdate;
 import edu.yale.plugins.tasks.utils.ContainerGatherer;
+import edu.yale.plugins.tasks.utils.ResourceParentUpdater;
 import edu.yale.plugins.tasks.utils.YalePluginTasksConfigDialog;
 import org.archiviststoolkit.ApplicationFrame;
 import org.archiviststoolkit.dialog.ATFileChooser;
@@ -667,6 +668,110 @@ public class YalePluginTasks extends Plugin implements ATPlugin {
                     }
                     e.printStackTrace();
                 } catch (SQLException e) {
+                    if (gui) {
+                        new ErrorDialog("Error resetting the long session", e).showDialog();
+                    }
+                    e.printStackTrace();
+                } catch (ClassNotFoundException e) {
+                    if (gui) {
+                        monitor.close();
+                        new ErrorDialog("Exception", e).showDialog();
+                    }
+                    e.printStackTrace();
+                } finally {
+                    if (gui) {
+                        monitor.close();
+                    }
+                }
+            }
+        }, "Verifying Container Barcodes");
+        performer.start();
+    }
+
+    /**
+     * Method to set the parent resource record for all resource components
+     */
+    public void setParentResourceRecord(final Window parent, final boolean gui) {
+        final ResourcesDAO access = new ResourcesDAO();
+
+        Thread performer = new Thread(new Runnable() {
+            public void run() {
+                InfiniteProgressPanel monitor = null;
+
+                if (gui) {
+                    monitor = ATProgressUtil.createModalProgressMonitor(parent, 1000, true);
+                    monitor.start("Setting Parent Resource Record for Components ...");
+                }
+
+                long resourceId;
+                Resources selectedResource, resource;
+
+                BoxLookupAndUpdate boxLookupAndUpdate;
+                ContainerGatherer gatherer;
+
+                // start the timer object
+                MyTimer timer = new MyTimer();
+                timer.reset();
+
+                try {
+                    StringBuilder sb = new StringBuilder();
+
+                    ArrayList records = (ArrayList) access.findAll();
+
+                    int totalRecords = records.size();
+                    int totalComponents = 0;
+
+                    int i = 1;
+
+                    for (Object object : records) {
+                        if (monitor != null && monitor.isProcessCancelled()) {
+                            System.out.println("Setting of parent resource record cancelled ...");
+                            break;
+                        }
+
+                        selectedResource = (Resources) object;
+                        resourceId = selectedResource.getResourceId();
+
+                        monitor.setTextLine("processing resource " + i + " of " + totalRecords + " - " + selectedResource.getTitle(), 1);
+
+                        // update the resource components with parent resource id
+                        ResourceParentUpdater resourceParentUpdater = new ResourceParentUpdater();
+                        resourceParentUpdater.updateComponentsBySeries(resourceId, monitor);
+
+                        // close the database connection and long sessions, otherwise memory would quickly run out
+                        resourceParentUpdater.closeConnection();
+
+                        access.closeLongSession();
+                        access.getLongSession();
+
+                        i++;
+                    }
+
+                    String message = sb.toString() + "\nTotal time for verification of " + i + " records / " +
+                            totalComponents + " instances : " +
+                            MyTimer.toString(timer.elapsedTimeMillis());
+
+                    if (gui) {
+                        monitor.close();
+
+                        ImportExportLogDialog logDialog = new ImportExportLogDialog(null, ImportExportLogDialog.DIALOG_TYPE_EXPORT, message);
+                        logDialog.setTitle("Parent Resource Record Setter");
+                        logDialog.showDialog();
+                    }
+
+                    System.out.println(message);
+                } catch (LookupException e) {
+                    if (gui) {
+                        monitor.close();
+                        new ErrorDialog("Error loading resource", e).showDialog();
+                    }
+                    e.printStackTrace();
+                } /*catch (PersistenceException e) {
+                    if (gui) {
+                        new ErrorDialog("Error looking up accession date", e).showDialog();
+                    }
+                    e.printStackTrace();
+                } */catch (SQLException e) {
                     if (gui) {
                         new ErrorDialog("Error resetting the long session", e).showDialog();
                     }

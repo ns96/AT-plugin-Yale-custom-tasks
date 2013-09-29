@@ -5,13 +5,13 @@ new FormModel {
 	root: new FormRoot {
 		add( new FormWindow( "javax.swing.JDialog", new FormLayoutManager( class java.awt.BorderLayout ) ) {
 			name: "this"
-			"title": "Yale Tasks Config Dialog v2.7"
+			"title": "Yale Tasks Config Dialog v2.8"
 			add( new FormContainer( "javax.swing.JPanel", new FormLayoutManager( class java.awt.BorderLayout ) ) {
 				name: "dialogPane"
 				"border": sfield com.jgoodies.forms.factories.Borders DIALOG_BORDER
 				add( new FormContainer( "javax.swing.JPanel", new FormLayoutManager( class com.jgoodies.forms.layout.FormLayout ) {
 					"$columnSpecs": "default, labelcompgap, default"
-					"$rowSpecs": "default, linegap, default, linegap, default, linegap, default, linegap, default, linegap, default, linegap, bottom:default, linegap, default, linegap, default, linegap, default"
+					"$rowSpecs": "default, linegap, default, linegap, default, linegap, default, linegap, default, linegap, default, linegap, bottom:default, linegap, default, linegap, default, linegap, default, linegap, default"
 				} ) {
 					name: "contentPanel"
 					add( new FormComponent( "javax.swing.JCheckBox" ) {
@@ -81,20 +81,28 @@ new FormModel {
 						"gridY": 13
 					} )
 					add( new FormComponent( "javax.swing.JButton" ) {
+						name: "setParentResourceButton"
+						"text": "Set Parent Resource"
+						addEvent( new FormEvent( "java.awt.event.ActionListener", "actionPerformed", "setParentResourceButtonActionPerformed", false ) )
+					}, new FormLayoutConstraints( class com.jgoodies.forms.layout.CellConstraints ) {
+						"gridX": 1
+						"gridY": 15
+					} )
+					add( new FormComponent( "javax.swing.JButton" ) {
 						name: "correctExtentButton"
 						"text": "Correct Extent Data"
 						"visible": false
 						addEvent( new FormEvent( "java.awt.event.ActionListener", "actionPerformed", "correctExtentButtonActionPerformed", false ) )
 					}, new FormLayoutConstraints( class com.jgoodies.forms.layout.CellConstraints ) {
 						"gridX": 1
-						"gridY": 15
+						"gridY": 17
 					} )
 					add( new FormComponent( "javax.swing.JButton" ) {
 						name: "highlightButton"
 						"text": "Set Highlighted Color"
 						addEvent( new FormEvent( "java.awt.event.ActionListener", "actionPerformed", "highlightButtonActionPerformed", false ) )
 					}, new FormLayoutConstraints( class com.jgoodies.forms.layout.CellConstraints ) {
-						"gridY": 17
+						"gridY": 19
 					} )
 					add( new FormComponent( "javax.swing.JLabel" ) {
 						name: "highlightLabel"
@@ -104,7 +112,7 @@ new FormModel {
 						"font": new java.awt.Font( "Tahoma", 1, 11 )
 					}, new FormLayoutConstraints( class com.jgoodies.forms.layout.CellConstraints ) {
 						"gridX": 3
-						"gridY": 17
+						"gridY": 19
 					} )
 					add( new FormComponent( "javax.swing.JLabel" ) {
 						name: "highlightLabel2"
@@ -115,7 +123,7 @@ new FormModel {
 						"foreground": sfield java.awt.Color red
 					}, new FormLayoutConstraints( class com.jgoodies.forms.layout.CellConstraints ) {
 						"gridX": 3
-						"gridY": 19
+						"gridY": 21
 					} )
 				}, new FormLayoutConstraints( class java.lang.String ) {
 					"value": "Center"

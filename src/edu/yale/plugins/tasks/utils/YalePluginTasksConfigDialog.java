@@ -203,6 +203,14 @@ public class YalePluginTasksConfigDialog extends JDialog {
         }
     }
 
+    /**
+     * Method to set the resource record parent id for all resource
+     * records commponents
+     */
+    private void setParentResourceButtonActionPerformed() {
+
+    }
+
     private void initComponents() {
         // JFormDesigner - Component initialization - DO NOT MODIFY  //GEN-BEGIN:initComponents
         // Generated using JFormDesigner non-commercial license
@@ -217,6 +225,7 @@ public class YalePluginTasksConfigDialog extends JDialog {
         updateAllRecordsCheckBox = new JCheckBox();
         avReportButton = new JButton();
         verifyContainerBarcodesButton = new JButton();
+        setParentResourceButton = new JButton();
         correctExtentButton = new JButton();
         highlightButton = new JButton();
         highlightLabel = new JLabel();
@@ -227,7 +236,7 @@ public class YalePluginTasksConfigDialog extends JDialog {
         CellConstraints cc = new CellConstraints();
 
         //======== this ========
-        setTitle("Yale Tasks Config Dialog v2.7");
+        setTitle("Yale Tasks Config Dialog v2.8");
         Container contentPane = getContentPane();
         contentPane.setLayout(new BorderLayout());
 
@@ -258,6 +267,8 @@ public class YalePluginTasksConfigDialog extends JDialog {
                         FormFactory.DEFAULT_ROWSPEC,
                         FormFactory.LINE_GAP_ROWSPEC,
                         new RowSpec(RowSpec.BOTTOM, Sizes.DEFAULT, FormSpec.NO_GROW),
+                        FormFactory.LINE_GAP_ROWSPEC,
+                        FormFactory.DEFAULT_ROWSPEC,
                         FormFactory.LINE_GAP_ROWSPEC,
                         FormFactory.DEFAULT_ROWSPEC,
                         FormFactory.LINE_GAP_ROWSPEC,
@@ -323,6 +334,15 @@ public class YalePluginTasksConfigDialog extends JDialog {
                 });
                 contentPanel.add(verifyContainerBarcodesButton, cc.xy(1, 13));
 
+                //---- setParentResourceButton ----
+                setParentResourceButton.setText("Set Parent Resource");
+                setParentResourceButton.addActionListener(new ActionListener() {
+                    public void actionPerformed(ActionEvent e) {
+                        setParentResourceButtonActionPerformed();
+                    }
+                });
+                contentPanel.add(setParentResourceButton, cc.xy(1, 15));
+
                 //---- correctExtentButton ----
                 correctExtentButton.setText("Correct Extent Data");
                 correctExtentButton.setVisible(false);
@@ -331,7 +351,7 @@ public class YalePluginTasksConfigDialog extends JDialog {
                         correctExtentButtonActionPerformed();
                     }
                 });
-                contentPanel.add(correctExtentButton, cc.xy(1, 15));
+                contentPanel.add(correctExtentButton, cc.xy(1, 17));
 
                 //---- highlightButton ----
                 highlightButton.setText("Set Highlighted Color");
@@ -340,14 +360,14 @@ public class YalePluginTasksConfigDialog extends JDialog {
                         highlightButtonActionPerformed();
                     }
                 });
-                contentPanel.add(highlightButton, cc.xy(1, 17));
+                contentPanel.add(highlightButton, cc.xy(1, 19));
 
                 //---- highlightLabel ----
                 highlightLabel.setText(" Highlighted");
                 highlightLabel.setBackground(new Color(255, 255, 102));
                 highlightLabel.setOpaque(true);
                 highlightLabel.setFont(new Font("Tahoma", Font.BOLD, 11));
-                contentPanel.add(highlightLabel, cc.xy(3, 17));
+                contentPanel.add(highlightLabel, cc.xy(3, 19));
 
                 //---- highlightLabel2 ----
                 highlightLabel2.setText(" Highlighted");
@@ -355,7 +375,7 @@ public class YalePluginTasksConfigDialog extends JDialog {
                 highlightLabel2.setOpaque(true);
                 highlightLabel2.setFont(new Font("Tahoma", Font.BOLD, 11));
                 highlightLabel2.setForeground(Color.red);
-                contentPanel.add(highlightLabel2, cc.xy(3, 19));
+                contentPanel.add(highlightLabel2, cc.xy(3, 21));
             }
             dialogPane.add(contentPanel, BorderLayout.CENTER);
 
@@ -411,6 +431,7 @@ public class YalePluginTasksConfigDialog extends JDialog {
     private JCheckBox updateAllRecordsCheckBox;
     private JButton avReportButton;
     private JButton verifyContainerBarcodesButton;
+    private JButton setParentResourceButton;
     private JButton correctExtentButton;
     private JButton highlightButton;
     private JLabel highlightLabel;
