@@ -723,6 +723,8 @@ public class YalePluginTasks extends Plugin implements ATPlugin {
 
                     int i = 1;
 
+                    ResourceParentUpdater resourceParentUpdater = new ResourceParentUpdater();
+
                     for (Object object : records) {
                         if (monitor != null && monitor.isProcessCancelled()) {
                             System.out.println("Setting of parent resource record cancelled ...");
@@ -735,20 +737,16 @@ public class YalePluginTasks extends Plugin implements ATPlugin {
                         monitor.setTextLine("processing resource " + i + " of " + totalRecords + " - " + selectedResource.getTitle(), 1);
 
                         // update the resource components with parent resource id
-                        ResourceParentUpdater resourceParentUpdater = new ResourceParentUpdater();
-                        resourceParentUpdater.updateComponentsBySeries(resourceId, monitor);
-
-                        // close the database connection and long sessions, otherwise memory would quickly run out
-                        resourceParentUpdater.closeConnection();
-
-                        access.closeLongSession();
-                        access.getLongSession();
+                        totalComponents += resourceParentUpdater.updateComponentsBySeries(resourceId, monitor);
 
                         i++;
                     }
 
-                    String message = sb.toString() + "\nTotal time for verification of " + i + " records / " +
-                            totalComponents + " instances : " +
+                    // close the database connection and long sessions, otherwise memory would quickly run out
+                    resourceParentUpdater.closeConnection();
+
+                    String message = sb.toString() + "\nTotal time for processing " + i + " records / " +
+                            totalComponents + " components : " +
                             MyTimer.toString(timer.elapsedTimeMillis());
 
                     if (gui) {

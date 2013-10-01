@@ -395,7 +395,7 @@ public class BoxLookupAndUpdate {
                 instances = sqlStatement.executeQuery(sqlString);
 
                 // for all the instances found find the containers
-                message = "Processing Instances for Series " + series.seriesTitle;
+                message = "Processing Instances for Series " + series.getSeriesTitle();
                 System.out.println(message);
                 if(monitor != null)monitor.setTextLine(message, 4);
 
@@ -677,7 +677,7 @@ public class BoxLookupAndUpdate {
                 addNoteContentToComponentInfo(notes);
 
                 // for all the instances found find the containers
-                message = "Processing Instances for Series " + series.seriesTitle;
+                message = "Processing Instances for Series " + series.getSeriesTitle();
                 System.out.println(message);
                 if(monitor != null)monitor.setTextLine(message, 4);
 
@@ -1420,90 +1420,4 @@ public class BoxLookupAndUpdate {
         }
     }
 
-    private class SeriesInfo {
-
-        private String uniqueId;
-        private String seriesTitle;
-        private String componentIds = null;
-
-        private SeriesInfo(String uniqueId, String seriesTitle) {
-            this.uniqueId = uniqueId;
-            this.seriesTitle = seriesTitle;
-        }
-
-        public String getUniqueId() {
-            return uniqueId;
-        }
-
-        public void setUniqueId(String uniqueId) {
-            this.uniqueId = uniqueId;
-        }
-
-        public String getSeriesTitle() {
-            return seriesTitle;
-        }
-
-        public void setSeriesTitle(String seriesTitle) {
-            this.seriesTitle = seriesTitle;
-        }
-
-        public String getComponentIds() {
-            return componentIds;
-        }
-
-        public void addComponentId(Long componentId) {
-            if (this.componentIds == null) {
-                this.componentIds = componentId.toString();
-            } else {
-                this.componentIds += ", " + componentId;
-            }
-        }
-    }
-
-    private class ComponentInfo {
-
-        private Long componentId;
-        private String resourceLevel;
-        private String title;
-        private Boolean hasChild;
-
-        private ComponentInfo(Long componentId, String resourceLevel, String title, Boolean hasChild) {
-            this.componentId = componentId;
-            this.resourceLevel = resourceLevel;
-            this.title = title;
-            this.hasChild = hasChild;
-        }
-
-        public Long getComponentId() {
-            return componentId;
-        }
-
-        public void setComponentId(Long componentId) {
-            this.componentId = componentId;
-        }
-
-        public String getResourceLevel() {
-            return resourceLevel;
-        }
-
-        public void setResourceLevel(String resourceLevel) {
-            this.resourceLevel = resourceLevel;
-        }
-
-        public String getTitle() {
-            return title;
-        }
-
-        public void setTitle(String title) {
-            this.title = title;
-        }
-
-        public Boolean isHasChild() {
-            return hasChild;
-        }
-
-        public void setHasChild(Boolean hasChild) {
-            this.hasChild = hasChild;
-        }
-    }
 }

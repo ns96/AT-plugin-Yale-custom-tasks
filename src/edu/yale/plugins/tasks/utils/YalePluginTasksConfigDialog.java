@@ -205,10 +205,10 @@ public class YalePluginTasksConfigDialog extends JDialog {
 
     /**
      * Method to set the resource record parent id for all resource
-     * records commponents
+     * records components
      */
     private void setParentResourceButtonActionPerformed() {
-
+        yalePluginTasks.setParentResourceRecord(this,true);
     }
 
     private void initComponents() {

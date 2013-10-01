@@ -20,29 +20,19 @@
 
 package edu.yale.plugins.tasks.utils;
 
-import edu.yale.plugins.tasks.model.BoxLookupReturnRecords;
-import edu.yale.plugins.tasks.model.BoxLookupReturnRecordsCollection;
-import edu.yale.plugins.tasks.search.BoxLookupReturnScreen;
 import org.archiviststoolkit.dialog.ErrorDialog;
 import org.archiviststoolkit.hibernate.SessionFactory;
-import org.archiviststoolkit.model.ArchDescriptionAnalogInstances;
-import org.archiviststoolkit.model.Locations;
-import org.archiviststoolkit.model.Resources;
-import org.archiviststoolkit.model.ResourcesComponents;
-import org.archiviststoolkit.mydomain.*;
 import org.archiviststoolkit.swing.InfiniteProgressPanel;
 import org.archiviststoolkit.util.MyTimer;
 import org.archiviststoolkit.util.StringHelper;
 
-import java.io.PrintWriter;
 import java.sql.*;
-import java.text.NumberFormat;
 import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashMap;
 import java.util.TreeMap;
 
 public class ResourceParentUpdater {
+    private TreeMap<String, SeriesInfo> seriesInfo = new TreeMap<String, SeriesInfo>();
+
     private String logMessage = "";
 
     private Connection con;
@@ -103,7 +93,10 @@ public class ResourceParentUpdater {
      * @param monitor
      * @return Collection Containing resources
      */
-    public void updateComponentsBySeries(Long resourceId, InfiniteProgressPanel monitor) {
+    public int updateComponentsBySeries(Long resourceId, InfiniteProgressPanel monitor) {
+        seriesInfo = new TreeMap<String, SeriesInfo>();
+        componentCount = 0;
+
         try {
             // initialize the prepared statements
             initPreparedStatements();
@@ -120,36 +113,71 @@ public class ResourceParentUpdater {
             ResultSet components = componentLookupByResource.executeQuery();
 
             while (components.next()) {
+                String hashKey = "component_" + components.getLong("resourceComponentId");
                 String componentTitle = getComponentTitle(components);
 
                 message = "Processing Series: " + componentTitle;
                 System.out.println(message);
                 if(monitor != null) monitor.setTextLine(message, 3);
 
-                recurseThroughComponents(resourceId, components.getLong("resourceComponentId"),
+                SeriesInfo si = new SeriesInfo(resourceId, hashKey, componentTitle);
+                seriesInfo.put(hashKey, si);
+
+                recurseThroughComponents(hashKey, components.getLong("resourceComponentId"),
                         components.getBoolean("hasChild"),
                         componentLookupByComponent,
                         componentTitle);
             }
+
+            // now update all the components that are in a series. We could have just made one giant
+            // call for all components but that may have killed the server
+            updateComponentsInSeries(monitor);
 
             System.out.println("Total Components: " + componentCount);
             System.out.println("Total Time: " + MyTimer.toString(timer.elapsedTimeMillis()));
         } catch (Exception e) {
             new ErrorDialog("", e).showDialog();
         }
+
+        return componentCount;
+    }
+
+    /**
+     * Method to make direct SQL calls to update the components
+     *
+     * @param monitor
+     * @throws Exception
+     */
+    private void updateComponentsInSeries(InfiniteProgressPanel monitor) throws  Exception {
+        for (SeriesInfo series : seriesInfo.values()) {
+            String sqlString = "UPDATE ResourcesComponents " +
+                    "SET resourceId = " + series.getResourceId() + "\n" +
+                    "WHERE resourceComponentId in (" + series.getComponentIds() + ")";
+
+            //System.out.println(sqlString);
+
+            Statement sqlStatement = con.createStatement();
+            int rowCount = sqlStatement.executeUpdate(sqlString);
+
+            // for all the instances found find the containers
+            String message = "Processing Components for Series " + series.getSeriesTitle() + ", Updated " + rowCount;
+            System.out.println(message);
+            if(monitor != null)monitor.setTextLine(message, 4);
+        }
     }
 
     /**
      * Method to recourse through the resource components
      *
-     * @param resourceID
+     *
+     * @param hashKey
      * @param componentID
      * @param hasChild
      * @param componentLookup
      * @param title
      * @throws SQLException
      */
-    private void recurseThroughComponents(Long resourceID, Long componentID,
+    private void recurseThroughComponents(String hashKey, Long componentID,
                                           Boolean hasChild,
                                           PreparedStatement componentLookup,
                                           String title) throws SQLException {
@@ -174,16 +202,20 @@ public class ResourceParentUpdater {
             if (componentList.size() > 0) {
                 for (ComponentInfo component : componentList) {
                     Long id = component.getComponentId();
-                    recurseThroughComponents(resourceID, id, component.isHasChild(), componentLookup, component.getTitle());
+
+                    SeriesInfo series = seriesInfo.get(hashKey);
+                    series.addComponentId(id);
+
+                    recurseThroughComponents(hashKey, id, component.isHasChild(), componentLookup, component.getTitle());
                 }
             } else {
                 //this is a hack because the has child flag for components may be set wrong
-
-                //addComponentId(componentID);
+                SeriesInfo series = seriesInfo.get(hashKey);
+                series.addComponentId(componentID);
             }
         } else {
-            //set the parent resource record id
-            //addComponentId(componentID);
+            SeriesInfo series = seriesInfo.get(hashKey);
+            series.addComponentId(componentID);
         }
     }
 
@@ -221,56 +253,6 @@ public class ResourceParentUpdater {
             con.close();
         } catch (SQLException e) {
             e.printStackTrace();
-        }
-    }
-
-    /**
-     * Used to store component information
-     */
-    private class ComponentInfo {
-
-        private Long componentId;
-        private String resourceLevel;
-        private String title;
-        private Boolean hasChild;
-
-        private ComponentInfo(Long componentId, String resourceLevel, String title, Boolean hasChild) {
-            this.componentId = componentId;
-            this.resourceLevel = resourceLevel;
-            this.title = title;
-            this.hasChild = hasChild;
-        }
-
-        public Long getComponentId() {
-            return componentId;
-        }
-
-        public void setComponentId(Long componentId) {
-            this.componentId = componentId;
-        }
-
-        public String getResourceLevel() {
-            return resourceLevel;
-        }
-
-        public void setResourceLevel(String resourceLevel) {
-            this.resourceLevel = resourceLevel;
-        }
-
-        public String getTitle() {
-            return title;
-        }
-
-        public void setTitle(String title) {
-            this.title = title;
-        }
-
-        public Boolean isHasChild() {
-            return hasChild;
-        }
-
-        public void setHasChild(Boolean hasChild) {
-            this.hasChild = hasChild;
         }
     }
 }
